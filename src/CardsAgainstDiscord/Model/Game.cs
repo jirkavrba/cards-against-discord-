@@ -10,11 +10,6 @@ public class Game
     public int Id { get; set; }
 
     /// <summary>
-    /// ID of the current game round
-    /// </summary>
-    public int? CurrentRoundId { get; set; } = null;
-
-    /// <summary>
     /// ID of the guild that this game is being played in
     /// </summary>
     [Required]
@@ -25,6 +20,11 @@ public class Game
     /// </summary>
     [Required]
     public ulong ChannelId { get; set; }
+
+    /// <summary>
+    /// ID of the current game round
+    /// </summary>
+    public int? CurrentRoundId { get; set; } = null;
 
     /// <summary>
     /// Currently played game round
