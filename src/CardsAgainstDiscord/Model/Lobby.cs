@@ -28,7 +28,7 @@ public class Lobby
     public ulong MessageId { get; set; }
     
     /// <summary>
-    /// Id of the owner that created this lobby
+    /// Discord ID of the owner that created this lobby
     /// </summary>
     [Required]
     public ulong OwnerId { get; set; }

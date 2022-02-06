@@ -19,4 +19,14 @@ public class Player
     /// Mapped white cards that this player has in his hand
     /// </summary>
     public List<WhiteCard> WhiteCards = new();
+
+    /// <summary>
+    /// Mapped list of picked white cards (in all rounds)
+    /// </summary>
+    public List<PickedCard> PickedCards = new();
+
+    /// <summary>
+    /// Mapped list of all rounds where this player is the judge
+    /// </summary>
+    public List<GameRound> JudgingRounds = new();
 }

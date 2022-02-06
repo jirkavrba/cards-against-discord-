@@ -19,4 +19,9 @@ public class WhiteCard
     /// Mapped list of players that have this white card in their hands
     /// </summary>
     public List<Player> Players = new();
+
+    /// <summary>
+    /// Mapped list of all picks this white card was selected in
+    /// </summary>
+    public List<PickedCard> Picks = new();
 }

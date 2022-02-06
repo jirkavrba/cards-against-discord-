@@ -17,6 +17,12 @@ public class CardsDbContext : DbContext
 
     public virtual DbSet<Player> Players { get; protected set; } = null!;
 
+    public virtual DbSet<Game> Games { get; protected set; } = null!;
+
+    public virtual DbSet<GameRound> Rounds { get; protected set; } = null!;
+
+    public virtual DbSet<PickedCard> Picks { get; protected set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder model)
     {
         base.OnModelCreating(model);
@@ -26,5 +32,41 @@ public class CardsDbContext : DbContext
         model.Entity<Player>()
             .HasMany(p => p.WhiteCards)
             .WithMany(c => c.Players);
+
+        model.Entity<Player>()
+            .HasMany(p => p.JudgingRounds)
+            .WithOne(r => r.Judge)
+            .IsRequired()
+            .HasForeignKey(r => r.JudgeId);
+
+        model.Entity<Player>()
+            .HasMany(p => p.PickedCards)
+            .WithOne(c => c.Player)
+            .HasForeignKey(c => c.PlayerId);
+
+        model.Entity<Game>()
+            .HasOne(g => g.CurrentRound)
+            .WithOne(r => r.Game)
+            .HasForeignKey<GameRound>(r => r.GameId);
+
+        model.Entity<GameRound>()
+            .HasOne(r => r.BlackCard)
+            .WithMany(c => c.Rounds)
+            .HasForeignKey(r => r.BlackCardId);
+
+        model.Entity<GameRound>()
+            .HasMany(r => r.PickedCards)
+            .WithOne(p => p.Round)
+            .HasForeignKey(p => p.RoundId);
+
+        model.Entity<PickedCard>()
+            .HasOne(c => c.WhiteCard)
+            .WithMany(c => c.Picks)
+            .HasForeignKey(c => c.WhiteCardId);
+
+        model.Entity<PickedCard>()
+            .HasOne(c => c.Player)
+            .WithMany(p => p.PickedCards)
+            .HasForeignKey(c => c.PlayerId);
     }
 }

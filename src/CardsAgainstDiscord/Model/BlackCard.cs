@@ -20,4 +20,9 @@ public class BlackCard
     /// </summary>
     [Required]
     public int Picks { get; set; } = 0;
+
+    /// <summary>
+    /// List of all game rounds that this card was picked in
+    /// </summary>
+    public List<GameRound> Rounds { get; set; } = null!;
 }
