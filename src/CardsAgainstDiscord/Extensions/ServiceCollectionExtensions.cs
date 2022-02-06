@@ -1,4 +1,5 @@
 using CardsAgainstDiscord.Discord;
+using CardsAgainstDiscord.Discord.Commands;
 using Discord;
 using Discord.WebSocket;
 
@@ -16,6 +17,15 @@ public static class ServiceCollectionExtensions
 
         services.AddTransient(_ => new DiscordSocketClient(configuration));
         services.AddHostedService<DiscordBotService>();
+        
+        return services;
+    }
+
+    public static IServiceCollection AddSlashCommands(this IServiceCollection services)
+    {
+        services.AddSingleton<ISlashCommandDispatcher, SlashCommandDispatcher>();
+        
+        // TODO: Register slash commands here
         
         return services;
     }

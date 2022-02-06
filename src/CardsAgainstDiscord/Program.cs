@@ -22,6 +22,7 @@ var host = Host.CreateDefaultBuilder(args)
 
         services.AddDbContextFactory<CardsDbContext>(options => options.UseNpgsql(configuration.GetConnectionString("Default")));
         services.AddDiscordBot();
+        services.AddSlashCommands();
     })
     .Build();
 
