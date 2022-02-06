@@ -12,5 +12,5 @@ public class DiscordConfiguration
     /// <summary>
     /// Id of the testing guild to locally register slash commands to
     /// </summary>
-    public long? GuildId { get; init; } = null;
+    public ulong? GuildId { get; init; } = null;
 }
