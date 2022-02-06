@@ -29,4 +29,11 @@ public static class ServiceCollectionExtensions
         
         return services;
     }
+
+    public static IServiceCollection AddInteractionHandlers(this IServiceCollection services)
+    {
+        // TODO: Register interaction handlers here 
+        
+        return services;
+    }
 }
