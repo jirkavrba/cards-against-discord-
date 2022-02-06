@@ -20,7 +20,6 @@ var host = Host.CreateDefaultBuilder(args)
         services.Configure<DiscordConfiguration>(configuration.GetRequiredSection(DiscordConfiguration.Section));
         
         services.AddDbContextFactory<CardsDbContext>(options => options.UseNpgsql(configuration.GetConnectionString("Default")));
-        services.AddHostedService<Worker>();
     })
     .Build();
 
