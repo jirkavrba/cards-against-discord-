@@ -1,6 +1,7 @@
-using CardsAgainstDiscord;
 using CardsAgainstDiscord.Configuration;
 using CardsAgainstDiscord.Data;
+using CardsAgainstDiscord.Discord;
+using CardsAgainstDiscord.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 var host = Host.CreateDefaultBuilder(args)
@@ -16,10 +17,11 @@ var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((host, services) =>
     {
         var configuration = host.Configuration;
-
-        services.Configure<DiscordConfiguration>(configuration.GetRequiredSection(DiscordConfiguration.Section));
         
+        services.Configure<DiscordConfiguration>(configuration.GetRequiredSection(DiscordConfiguration.Section));
+
         services.AddDbContextFactory<CardsDbContext>(options => options.UseNpgsql(configuration.GetConnectionString("Default")));
+        services.AddDiscordBot();
     })
     .Build();
 
