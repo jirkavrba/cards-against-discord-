@@ -3,20 +3,20 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CardsAgainstDiscord.Model;
 
-public class WhiteCard
+public class Player
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }    
+    public int Id { get; set; } 
     
     /// <summary>
-    /// Text of the white card
+    /// ID of the Discord user that this player entity is associated to
     /// </summary>
     [Required]
-    public string Text { get; set; } = null!;
+    public ulong UserId { get; set; }
 
     /// <summary>
-    /// Mapped list of players that have this white card in their hands
+    /// Mapped white cards that this player has in his hand
     /// </summary>
-    public List<Player> Players = new();
+    public List<WhiteCard> WhiteCards = new();
 }

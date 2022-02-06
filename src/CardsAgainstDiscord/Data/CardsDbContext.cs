@@ -15,10 +15,16 @@ public class CardsDbContext : DbContext
 
     public virtual DbSet<Lobby> Lobbies { get; protected set; } = null!;
 
+    public virtual DbSet<Player> Players { get; protected set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder model)
     {
         base.OnModelCreating(model);
 
         model.Entity<Lobby>().HasAlternateKey(l => new {l.GuildId, l.ChannelId, l.MessageId});
+
+        model.Entity<Player>()
+            .HasMany(p => p.WhiteCards)
+            .WithMany(c => c.Players);
     }
 }
