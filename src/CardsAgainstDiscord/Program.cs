@@ -1,6 +1,5 @@
 using CardsAgainstDiscord.Configuration;
 using CardsAgainstDiscord.Data;
-using CardsAgainstDiscord.Discord;
 using CardsAgainstDiscord.Extensions;
 using Microsoft.EntityFrameworkCore;
 
