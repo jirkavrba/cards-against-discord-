@@ -8,7 +8,7 @@ public interface ISlashCommand
     /// <summary>
     /// Application command definition that will get automatically registered upon the service startup
     /// </summary>
-    public ApplicationCommandProperties Properties { get; set; } 
+    public ApplicationCommandProperties Properties { get; } 
     
     /// <summary>
     /// Handle invocation of the command defined id <see cref="Properties"/>
