@@ -1,6 +1,8 @@
 using CardsAgainstDiscord.Configuration;
 using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Extensions;
+using CardsAgainstDiscord.Services;
+using CardsAgainstDiscord.Services.Contracts;
 using Microsoft.EntityFrameworkCore;
 
 var host = Host.CreateDefaultBuilder(args)
@@ -20,7 +22,9 @@ var host = Host.CreateDefaultBuilder(args)
         services.Configure<DiscordConfiguration>(configuration.GetRequiredSection(DiscordConfiguration.Section));
 
         services.AddDbContextFactory<CardsDbContext>(options => options.UseNpgsql(configuration.GetConnectionString("Default")));
+        
         services.AddDiscordBot();
+        services.AddTransient<ILobbiesService, LobbiesService>();
         services.AddSlashCommands();
     })
     .Build();

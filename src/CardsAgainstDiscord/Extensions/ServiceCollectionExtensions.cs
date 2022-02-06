@@ -23,7 +23,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddSlashCommands(this IServiceCollection services)
     {
-        services.AddSingleton<ISlashCommandDispatcher, SlashCommandDispatcher>();
+        services.AddTransient<ISlashCommandDispatcher, SlashCommandDispatcher>();
         
         // TODO: Register slash commands here
         
