@@ -128,9 +128,10 @@ public class GamesService : IGamesService
             WhiteCardId = cardId
         };
         
-        player.PickedCards.Add(pick);
+        round.PickedCards.Add(pick);
         player.WhiteCards.Remove(card);
-        
+
+        context.Rounds.Update(round);
         context.Players.Update(player);
         
         await context.SaveChangesAsync();
@@ -209,8 +210,10 @@ public class GamesService : IGamesService
         await using var context = await _factory.CreateDbContextAsync();
 
         var game = await context.Games
+            .Include(g => g.Players)
             .Include(g => g.CurrentRound).ThenInclude(r => r!.PickedCards)
             .Include(g => g.CurrentRound).ThenInclude(r => r!.BlackCard)
+            .Where(g => g.Id == gameId)
             .FirstOrDefaultAsync() ?? throw new GameNotFoundException();
 
         await UpdateGameRoundEmbedAsync(game);
