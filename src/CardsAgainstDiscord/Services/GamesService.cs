@@ -206,7 +206,7 @@ public class GamesService : IGamesService
         await UpdateGameRoundEmbedAsync(game);
     }
 
-    private async Task UpdateGameRoundEmbedAsync(int gameId)
+    private async Task UpdateGameRoundEmbedAsync(int gameId, bool delete = false)
     {
         await using var context = await _factory.CreateDbContextAsync();
 
@@ -214,13 +214,14 @@ public class GamesService : IGamesService
             .Include(g => g.Players)
             .Include(g => g.CurrentRound).ThenInclude(r => r!.PickedCards)
             .Include(g => g.CurrentRound).ThenInclude(r => r!.BlackCard)
+            .Include(g => g.CurrentRound).ThenInclude(r => r!.Judge)
             .Where(g => g.Id == gameId)
             .FirstOrDefaultAsync() ?? throw new GameNotFoundException();
 
-        await UpdateGameRoundEmbedAsync(game);
+        await UpdateGameRoundEmbedAsync(game, delete);
     }
 
-    private async Task UpdateGameRoundEmbedAsync(Game game)
+    private async Task UpdateGameRoundEmbedAsync(Game game, bool delete = false)
     {
         var round = game.CurrentRound ?? throw new ArgumentNullException(nameof(game.CurrentRound));
 
@@ -232,19 +233,23 @@ public class GamesService : IGamesService
             return;
         }
 
-        var players = game.Players.Select(p =>
+        if (delete)
         {
-            var mention = $"<@!{p.UserId}>";
+            await message.DeleteAsync();
+            return;
+        }
 
-            if (round.JudgeId == p.Id)
+        var players = game.Players
+            .Where(p => p.Id != round.JudgeId)
+            .Select(p =>
             {
-                return $"🧑‍⚖ {mention} - The judge";
-            }
+                var mention = $"<@!{p.UserId}>";
 
-            return round.PickedCards.Count(c => c.PlayerId == p.Id) < round.BlackCard.Picks
-                ? $"⏳ {mention} - Choosing white cards"
-                : $"👌 {mention} - Done";
-        });
+                return round.PickedCards.Count(c => c.PlayerId == p.Id) < round.BlackCard.Picks
+                    ? $"⏳ {mention} - Choosing white cards"
+                    : $"✅ {mention} - Done";
+            })
+            .OrderBy(p => p);
 
         var embed = new EmbedBuilder()
             .WithTitle("Waiting for players to pick white cards")
@@ -252,6 +257,7 @@ public class GamesService : IGamesService
             .WithColor(DiscordConstants.ColorPrimary)
             .WithThumbnailUrl(DiscordConstants.Banner)
             .WithCurrentTimestamp()
+            .AddField("Judge", $"<@!{round.Judge.UserId}>")
             .AddField("Players", string.Join("\n", players))
             .AddField("Selected black card", round.BlackCard.Text.FormatBlackCard());
 
