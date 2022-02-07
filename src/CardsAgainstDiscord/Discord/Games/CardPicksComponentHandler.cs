@@ -45,24 +45,10 @@ public class CardPicksComponentHandler : IComponentHandler
         {
             await handler(component, gameId);
         }
-        catch (PlayerIsJudgeException)
+        catch (EmbeddableException exception)
         {
             await component.FollowupAsync(
-                embed: EmbedBuilders.Error("You are the judge this round. You cannot pick white cards").Build(),
-                ephemeral: true
-            );
-        }
-        catch (AlreadyPickedAllWhiteCardsException)
-        {
-            await component.FollowupAsync(
-                embed: EmbedBuilders.Error("You already picked all white cards for this round.").Build(),
-                ephemeral: true
-            );
-        }
-        catch (PlayerNotFoundException)
-        {
-            await component.FollowupAsync(
-                embed: EmbedBuilders.Error("You're not participating in this game.").Build(),
+                embed: EmbedBuilders.Error(exception.Title, exception.Description).Build(),
                 ephemeral: true
             );
         }
