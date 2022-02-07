@@ -119,11 +119,15 @@ public class GamesService : IGamesService
             embed.AddField("Waiting for those players to pick their card(s)", string.Join(", ", playersWithoutPicks));
         }
 
+        var components = new ComponentBuilder().WithButton(
+            ButtonBuilder.CreatePrimaryButton("🃏 Pick your card(s)", $"game:pick:{game.Id}")
+        );
+
         await message.ModifyAsync(m =>
         {
             m.Content = "";
             m.Embed = embed.Build();
-            // TODO: Add [Pick card(s)] button
+            m.Components = components.Build();
         });
     }
 }
