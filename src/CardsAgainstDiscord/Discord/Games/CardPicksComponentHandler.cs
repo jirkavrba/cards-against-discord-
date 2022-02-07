@@ -2,7 +2,6 @@ using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Discord.Interactions;
 using CardsAgainstDiscord.Exceptions;
 using CardsAgainstDiscord.Extensions;
-using CardsAgainstDiscord.Migrations;
 using CardsAgainstDiscord.Services.Contracts;
 using Discord;
 using Discord.WebSocket;
@@ -115,9 +114,10 @@ public class CardPicksComponentHandler : IComponentHandler
         // If there are more card picks needed
         if (pickAnotherCard)
         {
-            await component.DeleteOriginalResponseAsync();
             await ShowCardsSelection(component, gameId);
             return;
         }
+
+        await component.FollowupAsync("All cards picked!\nYou can dismiss the messages now.", ephemeral: true);
     }
 }

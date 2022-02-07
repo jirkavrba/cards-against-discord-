@@ -63,11 +63,14 @@ public class GamesService : IGamesService
     {
         await using var context = await _factory.CreateDbContextAsync();
 
-        var round = await context.Rounds.FirstOrDefaultAsync(r => r.GameId == gameId)
+        var round = await context.Rounds
+                        .Include(r => r.BlackCard)
+                        .FirstOrDefaultAsync(r => r.GameId == gameId)
                     ?? throw new GameNotFoundException();
         
         var player = await context.Players
                          .Include(p => p.WhiteCards)
+                         .Include(p => p.PickedCards)
                          .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId)
                      ?? throw new PlayerNotFoundException();
 
@@ -75,6 +78,12 @@ public class GamesService : IGamesService
         if (round.JudgeId == player.Id)
         {
             throw new PlayerIsJudgeException();
+        }
+        
+        // Do not allow users to pick more than <black card picks> cards
+        if (player.PickedCards.Count(p => p.RoundId == round.Id) >= round.BlackCard.Picks)
+        {
+            throw new AlreadyPickedAllWhiteCardsException();
         }
 
         return player.WhiteCards;
@@ -103,21 +112,26 @@ public class GamesService : IGamesService
         
         var player = await context.Players
             .Include(p => p.PickedCards)
+            .Include(p => p.WhiteCards)
             .FirstOrDefaultAsync(p => p.UserId == playerId) ?? throw new PlayerNotFoundException();
 
-        if (player.PickedCards.Count == round.BlackCard.Picks)
+        if (player.PickedCards.Count(p => p.RoundId == round.Id) >= round.BlackCard.Picks)
         {
             throw new AlreadyPickedAllWhiteCardsException();
         }
-        
+
+        var card = player.WhiteCards.First(c => c.Id == cardId);
         var pick = new PickedCard
         {
             RoundId = round.Id,
             PlayerId = player.Id,
             WhiteCardId = cardId
         };
+        
+        player.PickedCards.Add(pick);
+        player.WhiteCards.Remove(card);
 
-        await context.Picks.AddAsync(pick);
+        context.Players.Update(player);
         await context.SaveChangesAsync();
 
         return player.PickedCards.Count + 1 < round.BlackCard.Picks;
