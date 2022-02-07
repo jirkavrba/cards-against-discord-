@@ -39,6 +39,7 @@ public class CardPicksComponentHandler : IComponentHandler
         {
             (ComponentType.Button, "pick") => ShowCardsSelection,
             (ComponentType.SelectMenu, "pick") => PickCard,
+            (ComponentType.SelectMenu, "judge") => SelectWinner,
             _ => throw new ArgumentOutOfRangeException(nameof(component))
         };
 
@@ -128,5 +129,26 @@ public class CardPicksComponentHandler : IComponentHandler
             m.Embed = embed.Build();
             m.Components = new ComponentBuilder().Build();
         });
+    }
+
+    private async Task SelectWinner(SocketMessageComponent component, int gameId)
+    {
+        var playerId = component.User.Id;
+        var winnerId = int.Parse(component.Data.Values.First());
+
+        var (winner, submission) = await _service.SubmitWinnerAsync(gameId, playerId, winnerId);
+        
+        var embed = new EmbedBuilder()
+            .WithTitle("The judge picked this submission as the winner")
+            .WithDescription(submission)
+            .WithColor(DiscordConstants.ColorGreen)
+            .WithCurrentTimestamp()
+            .AddField("Submitted by", $"<@!{winner.UserId}>")
+            .Build();
+
+        await component.Message.DeleteAsync();
+        await component.FollowupAsync(embed: embed);
+
+        await _service.CreateGameRound(gameId);
     }
 }

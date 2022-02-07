@@ -1,7 +1,9 @@
 using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Discord;
+using CardsAgainstDiscord.Discord.Lobbies;
 using CardsAgainstDiscord.Exceptions;
 using CardsAgainstDiscord.Extensions;
+using CardsAgainstDiscord.Migrations;
 using CardsAgainstDiscord.Model;
 using CardsAgainstDiscord.Services.Contracts;
 using Discord;
@@ -159,6 +161,20 @@ public class GamesService : IGamesService
         return false;
     }
 
+    public async Task CreateGameRound(int gameId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+                       .Include(g => g.CurrentRound)
+                       .Include(g => g.Players)
+                       .ThenInclude(p => p.WhiteCards)
+                       .FirstOrDefaultAsync(g => g.Id == gameId)
+                   ?? throw new GameNotFoundException();
+
+        await CreateGameRound(game);
+    }
+
     private async Task CreateGameRound(Game game)
     {
         var context = await _factory.CreateDbContextAsync();
@@ -314,7 +330,7 @@ public class GamesService : IGamesService
             .ToList();
 
         var texts = submissions.Select((cards, i) =>
-            $"**1.** " + blackCard
+            $"**{i}.** " + blackCard
                 .FormatBlackCard(cards.Select(c => c.WhiteCard.Text)
                     .ToList())
         ).ToList();
@@ -333,7 +349,7 @@ public class GamesService : IGamesService
                 $"game:judge:{game.CurrentRound.Id}",
                 submissions.Select((t, i) => new SelectMenuOptionBuilder
                 {
-                    Label = $"{1}. " + string.Join(", ", t.Select(c => c.WhiteCard.Text)),
+                    Label = $"{i + 1}. " + string.Join(", ", t.Select(c => c.WhiteCard.Text)),
                     Value = t.Key.ToString()
                 }).ToList()
             )
@@ -344,5 +360,39 @@ public class GamesService : IGamesService
             embed: embed,
             components: components
         );
+    }
+
+    public async Task<(Player, string)> SubmitWinnerAsync(int gameId, ulong playerId, int winnerId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+            .Include(g => g.Players)
+            .Include(g => g.CurrentRound).ThenInclude(p => p.Judge)
+            .Include(g => g.CurrentRound).ThenInclude(p => p.BlackCard)
+            .Include(g => g.CurrentRound)
+            .ThenInclude(p => p.PickedCards)
+            .ThenInclude(c => c.WhiteCard)
+            .FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
+
+        if (playerId != game.CurrentRound.Judge.UserId)
+        {
+            throw new PlayerIsNotJudgeException();
+        }
+
+        var winner = game.Players.FirstOrDefault(p => p.Id == winnerId)
+                     ?? throw new PlayerNotFoundException();
+
+        var cards = game.CurrentRound.PickedCards.Where(p => p.PlayerId == winnerId)
+            .Select(c => c.WhiteCard.Text)
+            .ToList();
+
+        var submission = game.CurrentRound.BlackCard.Text.FormatBlackCard(cards);
+
+        // TODO: Update score
+
+        await CreateGameRound(game);
+
+        return (winner, submission);
     }
 }
