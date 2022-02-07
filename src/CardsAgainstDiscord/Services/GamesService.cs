@@ -113,7 +113,7 @@ public class GamesService : IGamesService
         var player = await context.Players
             .Include(p => p.PickedCards)
             .Include(p => p.WhiteCards)
-            .FirstOrDefaultAsync(p => p.UserId == playerId) ?? throw new PlayerNotFoundException();
+            .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == playerId) ?? throw new PlayerNotFoundException();
 
         if (player.PickedCards.Count(p => p.RoundId == round.Id) >= round.BlackCard.Picks)
         {
