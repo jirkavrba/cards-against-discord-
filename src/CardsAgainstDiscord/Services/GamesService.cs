@@ -67,7 +67,7 @@ public class GamesService : IGamesService
                         .Include(r => r.BlackCard)
                         .FirstOrDefaultAsync(r => r.GameId == gameId)
                     ?? throw new GameNotFoundException();
-        
+
         var player = await context.Players
                          .Include(p => p.WhiteCards)
                          .Include(p => p.PickedCards)
@@ -79,7 +79,7 @@ public class GamesService : IGamesService
         {
             throw new PlayerIsJudgeException();
         }
-        
+
         // Do not allow users to pick more than <black card picks> cards
         if (player.PickedCards.Count(p => p.RoundId == round.Id) >= round.BlackCard.Picks)
         {
@@ -109,11 +109,12 @@ public class GamesService : IGamesService
         var round = await context.Rounds
             .Include(r => r.BlackCard)
             .FirstOrDefaultAsync(r => r.GameId == gameId) ?? throw new GameNotFoundException();
-        
+
         var player = await context.Players
-            .Include(p => p.PickedCards)
-            .Include(p => p.WhiteCards)
-            .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == playerId) ?? throw new PlayerNotFoundException();
+                         .Include(p => p.PickedCards)
+                         .Include(p => p.WhiteCards)
+                         .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == playerId) ??
+                     throw new PlayerNotFoundException();
 
         if (player.PickedCards.Count(p => p.RoundId == round.Id) >= round.BlackCard.Picks)
         {
@@ -127,13 +128,13 @@ public class GamesService : IGamesService
             PlayerId = player.Id,
             WhiteCardId = cardId
         };
-        
+
         round.PickedCards.Add(pick);
         player.WhiteCards.Remove(card);
 
         context.Rounds.Update(round);
         context.Players.Update(player);
-        
+
         await context.SaveChangesAsync();
         await UpdateGameRoundEmbedAsync(gameId);
 
@@ -243,7 +244,6 @@ public class GamesService : IGamesService
             return round.PickedCards.Count(c => c.PlayerId == p.Id) < round.BlackCard.Picks
                 ? $"⏳ {mention} - Choosing white cards"
                 : $"👌 {mention} - Done";
-            
         });
 
         var embed = new EmbedBuilder()
