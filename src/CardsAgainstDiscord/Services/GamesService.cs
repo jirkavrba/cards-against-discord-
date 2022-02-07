@@ -138,7 +138,7 @@ public class GamesService : IGamesService
         await context.SaveChangesAsync();
         await UpdateGameRoundEmbedAsync(gameId);
 
-        return player.PickedCards.Count + 1 < round.BlackCard.Picks;
+        return round.PickedCards.Count(r => r.PlayerId == player.Id) < round.BlackCard.Picks;
     }
 
     private async Task CreateGameRound(Game game)

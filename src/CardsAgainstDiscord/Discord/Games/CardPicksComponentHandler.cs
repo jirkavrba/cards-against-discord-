@@ -1,3 +1,4 @@
+using System.Reflection.Metadata;
 using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Discord.Interactions;
 using CardsAgainstDiscord.Exceptions;
@@ -56,10 +57,15 @@ public class CardPicksComponentHandler : IComponentHandler
 
     private async Task ShowCardsSelection(SocketMessageComponent component, int gameId)
     {
+        await ShowCardsSelection(component, gameId, false);
+    }
+
+    private async Task ShowCardsSelection(SocketMessageComponent component, int gameId, bool repeated)
+    {
         var blackCard = await _service.GetCurrentBlackCardAsync(gameId);
         var whiteCards = await _service.GetAvailableWhiteCardsAsync(gameId, component.User.Id);
         var picks = await _service.GetPickedWhiteCardsAsync(gameId, component.User.Id);
-        
+
         var texts = string.Join("\n", whiteCards.Select(c => $" • {c.Text}").ToList());
         var options = whiteCards.Select(c => new SelectMenuOptionBuilder
             {
@@ -81,6 +87,18 @@ public class CardPicksComponentHandler : IComponentHandler
             .WithSelectMenu($"game:pick:{gameId}", options, "Pick your card")
             .Build();
 
+        if (repeated)
+        {
+            var original = await component.GetOriginalResponseAsync();
+
+            await original.ModifyAsync(m =>
+            {
+                m.Embed = embed;
+                m.Components = select;
+            });
+            return;
+        }
+
         await component.FollowupAsync(ephemeral: true, embed: embed, components: select);
     }
 
@@ -94,10 +112,21 @@ public class CardPicksComponentHandler : IComponentHandler
         // If there are more card picks needed
         if (pickAnotherCard)
         {
-            await ShowCardsSelection(component, gameId);
+            await ShowCardsSelection(component, gameId, true);
             return;
         }
 
-        await component.FollowupAsync("All cards picked!\nYou can dismiss the messages now.", ephemeral: true);
+        var original = await component.GetOriginalResponseAsync();
+        var embed = new EmbedBuilder()
+            .WithColor(DiscordConstants.ColorGreen)
+            .WithTitle("All cards picked!")
+            .WithDescription("Now wait for the other players to make their choice.")
+            .WithCurrentTimestamp();
+
+        await original.ModifyAsync(m =>
+        {
+            m.Embed = embed.Build();
+            m.Components = new ComponentBuilder().Build();
+        });
     }
 }
