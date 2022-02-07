@@ -138,7 +138,25 @@ public class GamesService : IGamesService
         await context.SaveChangesAsync();
         await UpdateGameRoundEmbedAsync(gameId);
 
-        return round.PickedCards.Count(r => r.PlayerId == player.Id) < round.BlackCard.Picks;
+
+        // If the player needs to pick more cards, early return true
+        if (round.PickedCards.Count(r => r.PlayerId == player.Id) < round.BlackCard.Picks)
+        {
+            return true;
+        }
+
+        // Check, whether all players have submitted all picks
+        // There has to be (player - 1 judge) * black picks cards picked
+        var players = await context.Players.CountAsync(p => p.GameId == gameId);
+
+        if (round.PickedCards.Count == (players - 1) * round.BlackCard.Picks)
+        {
+            // List all submitted cards in a random order for the judge to pick and delete the original message
+            await UpdateGameRoundEmbedAsync(gameId);
+            await SendJudgeSelectionEmbedAsync(gameId);
+        }
+
+        return false;
     }
 
     private async Task CreateGameRound(Game game)
@@ -206,7 +224,7 @@ public class GamesService : IGamesService
         await UpdateGameRoundEmbedAsync(game);
     }
 
-    private async Task UpdateGameRoundEmbedAsync(int gameId, bool delete = false)
+    private async Task UpdateGameRoundEmbedAsync(int gameId)
     {
         await using var context = await _factory.CreateDbContextAsync();
 
@@ -218,10 +236,10 @@ public class GamesService : IGamesService
             .Where(g => g.Id == gameId)
             .FirstOrDefaultAsync() ?? throw new GameNotFoundException();
 
-        await UpdateGameRoundEmbedAsync(game, delete);
+        await UpdateGameRoundEmbedAsync(game);
     }
 
-    private async Task UpdateGameRoundEmbedAsync(Game game, bool delete = false)
+    private async Task UpdateGameRoundEmbedAsync(Game game)
     {
         var round = game.CurrentRound ?? throw new ArgumentNullException(nameof(game.CurrentRound));
 
@@ -230,12 +248,6 @@ public class GamesService : IGamesService
 
         if (await channel.GetMessageAsync(round.MessageId) is not IUserMessage message)
         {
-            return;
-        }
-
-        if (delete)
-        {
-            await message.DeleteAsync();
             return;
         }
 
@@ -271,5 +283,66 @@ public class GamesService : IGamesService
             m.Embed = embed.Build();
             m.Components = components.Build();
         });
+    }
+
+    private async Task SendJudgeSelectionEmbedAsync(int gameId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+            .Include(g => g.CurrentRound).ThenInclude(r => r!.Judge)
+            .Include(g => g.CurrentRound).ThenInclude(r => r!.BlackCard)
+            .Include(g => g.CurrentRound)
+            .ThenInclude(r => r!.PickedCards)
+            .ThenInclude(p => p.WhiteCard)
+            .FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
+
+        var guild = _client.GetGuild(game.GuildId);
+        var channel = guild.GetTextChannel(game.ChannelId);
+
+        if (await channel.GetMessageAsync(game.CurrentRound!.MessageId) is not IUserMessage message)
+        {
+            return;
+        }
+
+        var blackCard = game.CurrentRound.BlackCard.Text;
+
+        var random = new Random();
+        var submissions = game.CurrentRound.PickedCards
+            .GroupBy(c => c.PlayerId)
+            .OrderBy(_ => random.Next())
+            .ToList();
+
+        var texts = submissions.Select((cards, i) =>
+            $"**1.** " + blackCard
+                .FormatBlackCard(cards.Select(c => c.WhiteCard.Text)
+                    .ToList())
+        ).ToList();
+
+        var embed = new EmbedBuilder()
+            .WithTitle("Waiting for the judge to select his favorite submission")
+            .WithDescription("To make the choice, use the button below this message")
+            .WithColor(DiscordConstants.ColorPrimary)
+            .WithCurrentTimestamp()
+            .AddField("Judge", $"<@!{game.CurrentRound!.Judge.UserId}>")
+            .AddField("Submissions", string.Join("\n\n", texts))
+            .Build();
+
+        var components = new ComponentBuilder()
+            .WithSelectMenu(
+                $"game:judge:{game.CurrentRound.Id}",
+                submissions.Select((t, i) => new SelectMenuOptionBuilder
+                {
+                    Label = $"{1}. " + string.Join(", ", t.Select(c => c.WhiteCard.Text)),
+                    Value = t.Key.ToString()
+                }).ToList()
+            )
+            .Build();
+
+        await message.DeleteAsync();
+        await channel.SendMessageAsync(
+            embed: embed,
+            components: components
+        );
     }
 }
