@@ -1,4 +1,3 @@
-using CardsAgainstDiscord.Configuration;
 using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Discord;
 using CardsAgainstDiscord.Exceptions;
@@ -49,18 +48,75 @@ public class GamesService : IGamesService
         return game;
     }
 
-    public async Task<Game> GetPopulatedGameAsync(int gameId)
+    public async Task<BlackCard> GetCurrentBlackCardAsync(int gameId)
     {
         await using var context = await _factory.CreateDbContextAsync();
 
-        var game = await context.Games.Where(g => g.Id == gameId)
-            .Include(g => g.CurrentRound)
-            .ThenInclude(r => r.BlackCard)
-            .Include(g => g.Players)
-            .ThenInclude(p => p.WhiteCards)
-            .FirstOrDefaultAsync() ?? throw new GameNotFoundException();
+        var round = await context.Rounds
+            .Include(r => r.BlackCard)
+            .FirstOrDefaultAsync(r => r.GameId == gameId) ?? throw new GameNotFoundException();
 
-        return game;
+        return round.BlackCard;
+    }
+
+    public async Task<List<WhiteCard>> GetAvailableWhiteCardsAsync(int gameId, ulong userId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var round = await context.Rounds.FirstOrDefaultAsync(r => r.GameId == gameId)
+                    ?? throw new GameNotFoundException();
+        
+        var player = await context.Players
+                         .Include(p => p.WhiteCards)
+                         .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId)
+                     ?? throw new PlayerNotFoundException();
+
+        // Do not allow judge to pick white cards
+        if (round.JudgeId == player.Id)
+        {
+            throw new PlayerIsJudgeException();
+        }
+
+        return player.WhiteCards;
+    }
+
+    public async Task<List<WhiteCard>> GetPickedWhiteCardsAsync(int gameId, ulong userId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var player = await context.Players
+                         .Include(p => p.PickedCards)
+                         .ThenInclude(p => p.WhiteCard)
+                         .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId)
+                     ?? throw new PlayerNotFoundException();
+
+        return player.PickedCards.Select(p => p.WhiteCard).ToList();
+    }
+
+    public async Task<bool> SubmitPickedCardAsync(int gameId, ulong playerId, int cardId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var round = await context.Rounds
+            .Include(r => r.BlackCard)
+            .FirstOrDefaultAsync(r => r.GameId == gameId) ?? throw new GameNotFoundException();
+        
+        var player = await context.Players
+            .Include(p => p.PickedCards)
+            .FirstOrDefaultAsync(p => p.UserId == playerId) ?? throw new PlayerNotFoundException();
+        
+        var pick = new PickedCard
+        {
+            RoundId = round.Id,
+            PlayerId = player.Id,
+            WhiteCardId = cardId
+        };
+
+        // TODO: Check if all players have submitted their white cards
+        await context.Picks.AddAsync(pick);
+        await context.SaveChangesAsync();
+
+        return player.PickedCards.Count + 1 < round.BlackCard.Picks;
     }
 
     private async Task CreateGameRound(Game game)
@@ -109,7 +165,7 @@ public class GamesService : IGamesService
         players.Aggregate(0, (cardsTaken, player) =>
         {
             var missingCards = HandSize - player.WhiteCards.Count;
-            
+
             player.WhiteCards.AddRange(
                 availableWhiteCards
                     .Skip(cardsTaken)

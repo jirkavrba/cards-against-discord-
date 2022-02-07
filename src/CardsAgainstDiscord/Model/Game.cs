@@ -22,11 +22,6 @@ public class Game
     public ulong ChannelId { get; set; }
 
     /// <summary>
-    /// ID of the current game round
-    /// </summary>
-    public int? CurrentRoundId { get; set; } = null;
-
-    /// <summary>
     /// Currently played game round
     /// </summary>
     public GameRound? CurrentRound { get; set; } = null;

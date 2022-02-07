@@ -35,16 +35,19 @@ public class CreateGameSlashCommand : ISlashCommand
             return;
         }
 
-        await command.DeferAsync(ephemeral: true);
-        
+        await command.RespondAsync(
+            "A game is being created in this channel.\nYou can now dismiss this message 👌",
+            ephemeral: true
+        );
+
         var message = await textChannel.SendMessageAsync("Creating a new game...");
-        var lobby = await _service.CreateLobbyAsync(
+        
+        await _service.CreateLobbyAsync(
             channel.Guild.Id,
             textChannel.Id,
             message.Id,
             command.User.Id
         );
-
-        await command.FollowupAsync("Game created!");
+        
     }
 }
