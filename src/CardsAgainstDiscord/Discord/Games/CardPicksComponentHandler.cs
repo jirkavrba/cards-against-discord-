@@ -3,6 +3,7 @@ using System.Runtime.InteropServices.ObjectiveC;
 using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Discord.Interactions;
 using CardsAgainstDiscord.Exceptions;
+using CardsAgainstDiscord.Extensions;
 using CardsAgainstDiscord.Migrations;
 using CardsAgainstDiscord.Services.Contracts;
 using Discord;
@@ -63,18 +64,23 @@ public class CardPicksComponentHandler : IComponentHandler
         var player = game.Players.FirstOrDefault(p => p.UserId == component.User.Id)
                      ?? throw new PlayerNotFoundException();
 
-        var options = player.WhiteCards.Select(c => new SelectMenuOptionBuilder
+        var cards = player.WhiteCards.ToList();
+        var texts = string.Join("\n", cards.Select(c => $" • {c.Text}").ToList());
+        var options = cards.Select(c => new SelectMenuOptionBuilder
             {
-                Label = c.Text,
+                // I hope there is not a white card with text over 200 chars...
+                Label = c.Text.SafeSubstring(0, 100),
+                Description = c.Text.Length >= 100 ? c.Text.SafeSubstring(100, 200) : null,
                 Value = c.Id.ToString(),
             })
             .ToList();
 
         // TODO: Add support for multiple white cards 
         var embed = new EmbedBuilder()
-            .WithTitle("Pick a card to fill in the first blank")
-            .WithDescription("* Insert black card with highlighted blank here *")
             .WithColor(DiscordConstants.ColorPrimary)
+            .WithTitle("Pick a white card to fill in the blanks")
+            .WithDescription(game.CurrentRound?.BlackCard.Text.FormatBlackCard(new List<string>()))
+            .AddField("Available white cards:", texts)
             .Build();
         
         var select = new ComponentBuilder()

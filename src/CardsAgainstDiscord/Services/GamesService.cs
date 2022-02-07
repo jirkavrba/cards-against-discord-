@@ -55,6 +55,7 @@ public class GamesService : IGamesService
 
         var game = await context.Games.Where(g => g.Id == gameId)
             .Include(g => g.CurrentRound)
+            .ThenInclude(r => r.BlackCard)
             .Include(g => g.Players)
             .ThenInclude(p => p.WhiteCards)
             .FirstOrDefaultAsync() ?? throw new GameNotFoundException();
@@ -154,7 +155,7 @@ public class GamesService : IGamesService
             .WithThumbnailUrl(DiscordConstants.Banner)
             .WithCurrentTimestamp()
             .AddField("Judge", $"<@!{round.Judge.UserId}>")
-            .AddField("Selected black card", round.BlackCard.Text.ToBlackCardText());
+            .AddField("Selected black card", round.BlackCard.Text.FormatBlackCard());
 
         if (playersWithoutPicks.Any())
         {
