@@ -26,7 +26,7 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddDiscordBot();
         services.AddTransient<ILobbiesService, LobbiesService>();
         services.AddSlashCommands();
-        services.AddInteractionHandlers();
+        services.AddComponentHandlers();
     })
     .Build();
 

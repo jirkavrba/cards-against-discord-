@@ -1,5 +1,6 @@
 using CardsAgainstDiscord.Discord;
 using CardsAgainstDiscord.Discord.Commands;
+using CardsAgainstDiscord.Discord.Interactions;
 using CardsAgainstDiscord.Discord.Lobbies;
 using Discord;
 using Discord.WebSocket;
@@ -31,9 +32,9 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddInteractionHandlers(this IServiceCollection services)
+    public static IServiceCollection AddComponentHandlers(this IServiceCollection services)
     {
-        // TODO: Register interaction handlers here 
+        services.AddTransient<IComponentHandler, LobbiesComponentsHandler>();
         
         return services;
     }
