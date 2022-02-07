@@ -6,6 +6,7 @@ using CardsAgainstDiscord.Services.Contracts;
 using Discord;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 
 namespace CardsAgainstDiscord.Discord.Games;
 
@@ -94,11 +95,7 @@ public class CardPicksComponentHandler : IComponentHandler
             .WithSelectMenu($"game:pick:{gameId}", options, "Pick your card")
             .Build();
 
-        await component.FollowupAsync(
-            ephemeral: true,
-            embed: embed,
-            components: select
-        );
+        await component.FollowupAsync(ephemeral: true, embed: embed, components: select);
     }
 
     private async Task PickCard(SocketMessageComponent component, int gameId)
@@ -111,7 +108,6 @@ public class CardPicksComponentHandler : IComponentHandler
         // If there are more card picks needed
         if (pickAnotherCard)
         {
-            await component.DeleteOriginalResponseAsync();
             await ShowCardsSelection(component, gameId);
             return;
         }

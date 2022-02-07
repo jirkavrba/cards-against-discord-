@@ -130,9 +130,11 @@ public class GamesService : IGamesService
         
         player.PickedCards.Add(pick);
         player.WhiteCards.Remove(card);
-
+        
         context.Players.Update(player);
+        
         await context.SaveChangesAsync();
+        await UpdateGameRoundEmbedAsync(gameId);
 
         return player.PickedCards.Count + 1 < round.BlackCard.Picks;
     }
@@ -202,6 +204,18 @@ public class GamesService : IGamesService
         await UpdateGameRoundEmbedAsync(game);
     }
 
+    private async Task UpdateGameRoundEmbedAsync(int gameId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+            .Include(g => g.CurrentRound).ThenInclude(r => r.PickedCards)
+            .Include(g => g.CurrentRound).ThenInclude(r => r.BlackCard)
+            .FirstOrDefaultAsync() ?? throw new GameNotFoundException();
+
+        await UpdateGameRoundEmbedAsync(game);
+    }
+
     private async Task UpdateGameRoundEmbedAsync(Game game)
     {
         var round = game.CurrentRound ?? throw new ArgumentNullException(nameof(game.CurrentRound));
@@ -214,13 +228,20 @@ public class GamesService : IGamesService
             return;
         }
 
-        // Players that have not submitted the required number of white cards yet
-        var playersWithoutPicks = game.Players.Where(p =>
-                round.JudgeId != p.Id &&
-                round.PickedCards.Count(c => c.PlayerId == p.Id) < round.BlackCard.Picks
-            )
-            .Select(p => $"<@!{p.UserId}>")
-            .ToList();
+        var players = game.Players.Select(p =>
+        {
+            var mention = $"<@!{p.UserId}>";
+
+            if (round.JudgeId == p.Id)
+            {
+                return $"🧑‍⚖ {mention} - The judge";
+            }
+
+            return round.PickedCards.Count(c => c.PlayerId == p.Id) < round.BlackCard.Picks
+                ? $"⏳ {mention} - Choosing white cards"
+                : $"👌 {mention} - Done";
+            
+        });
 
         var embed = new EmbedBuilder()
             .WithTitle("Waiting for players to pick white cards")
@@ -228,13 +249,8 @@ public class GamesService : IGamesService
             .WithColor(DiscordConstants.ColorPrimary)
             .WithThumbnailUrl(DiscordConstants.Banner)
             .WithCurrentTimestamp()
-            .AddField("Judge", $"<@!{round.Judge.UserId}>")
+            .AddField("Players", string.Join("\n", players))
             .AddField("Selected black card", round.BlackCard.Text.FormatBlackCard());
-
-        if (playersWithoutPicks.Any())
-        {
-            embed.AddField("Waiting for those players to pick their card(s)", string.Join(", ", playersWithoutPicks));
-        }
 
         var components = new ComponentBuilder().WithButton(
             ButtonBuilder.CreatePrimaryButton("🃏 Pick your card(s)", $"game:pick:{game.Id}")
