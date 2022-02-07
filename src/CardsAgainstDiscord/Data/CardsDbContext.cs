@@ -49,6 +49,11 @@ public class CardsDbContext : DbContext
             .WithOne(r => r.Game)
             .HasForeignKey<GameRound>(r => r.GameId);
 
+        model.Entity<Game>()
+            .HasMany(g => g.Players)
+            .WithOne(p => p.Game)
+            .HasForeignKey(p => p.GameId);
+
         model.Entity<GameRound>()
             .HasOne(r => r.BlackCard)
             .WithMany(c => c.Rounds)

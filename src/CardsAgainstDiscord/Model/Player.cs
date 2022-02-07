@@ -14,6 +14,17 @@ public class Player
     /// </summary>
     [Required]
     public ulong UserId { get; set; }
+    
+    /// <summary>
+    /// ID of the game that this player belongs to
+    /// </summary>
+    [Required]
+    public int GameId { get; set; }
+
+    /// <summary>
+    /// Mapped game that this player belongs to 
+    /// </summary>
+    public Game Game { get; set; } = null!;
 
     /// <summary>
     /// Mapped white cards that this player has in his hand

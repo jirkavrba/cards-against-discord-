@@ -30,4 +30,9 @@ public class Game
     /// Currently played game round
     /// </summary>
     public GameRound? CurrentRound { get; set; } = null;
+
+    /// <summary>
+    /// Mapped list of players that belong to this game
+    /// </summary>
+    public List<Player> Players { get; set; } = new();
 }
