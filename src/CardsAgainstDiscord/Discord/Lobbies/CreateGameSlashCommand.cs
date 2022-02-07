@@ -23,6 +23,6 @@ public class CreateGameSlashCommand : ISlashCommand
 
     public async Task HandleInvocationAsync(SocketSlashCommand command)
     {
-        throw new NotImplementedException();
+        await command.DeferAsync();
     }
 }

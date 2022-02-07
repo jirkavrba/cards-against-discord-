@@ -1,5 +1,6 @@
 using CardsAgainstDiscord.Discord;
 using CardsAgainstDiscord.Discord.Commands;
+using CardsAgainstDiscord.Discord.Lobbies;
 using Discord;
 using Discord.WebSocket;
 
@@ -25,7 +26,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddTransient<ISlashCommandDispatcher, SlashCommandDispatcher>();
         
-        // TODO: Register slash commands here
+        services.AddTransient<ISlashCommand, CreateGameSlashCommand>();
         
         return services;
     }
