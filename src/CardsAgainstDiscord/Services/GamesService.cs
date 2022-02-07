@@ -1,8 +1,13 @@
+using CardsAgainstDiscord.Configuration;
 using CardsAgainstDiscord.Data;
+using CardsAgainstDiscord.Discord;
+using CardsAgainstDiscord.Extensions;
 using CardsAgainstDiscord.Model;
 using CardsAgainstDiscord.Services.Contracts;
+using Discord;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
+using Game = CardsAgainstDiscord.Model.Game;
 
 namespace CardsAgainstDiscord.Services;
 
@@ -54,7 +59,6 @@ public class GamesService : IGamesService
                     .Select(r => r.BlackCardId)
                     .Contains(c.Id)
             )
-            .Select(c => c.Id)
             .ToList() // Needed in order to change the context to local evaluation
             .OrderBy(_ => random.Next())
             .First();
@@ -66,11 +70,11 @@ public class GamesService : IGamesService
         game.CurrentRound = new GameRound
         {
             GameId = game.Id,
-            JudgeId = nextJudge.Id,
-            BlackCardId = selectedBlackCard,
-            MessageId = message.Id
+            MessageId = message.Id,
+            Judge = nextJudge,
+            BlackCard = selectedBlackCard,
         };
-        
+
         // TODO: Add missing white cards to every player's hand
 
         context.Games.Update(game);
@@ -78,7 +82,48 @@ public class GamesService : IGamesService
         // Context has to be disposed manually so it can be passed to LINQ lambdas
         await context.SaveChangesAsync();
         await context.DisposeAsync();
-        
-        // TODO: Update game round embed
+        await UpdateGameRoundEmbedAsync(game);
+    }
+
+    private async Task UpdateGameRoundEmbedAsync(Game game)
+    {
+        var round = game.CurrentRound ?? throw new ArgumentNullException(nameof(game.CurrentRound));
+
+        var guild = _client.GetGuild(game.GuildId);
+        var channel = guild.GetTextChannel(game.ChannelId);
+
+        if (await channel.GetMessageAsync(round.MessageId) is not IUserMessage message)
+        {
+            return;
+        }
+
+        // Players that have not submitted the required number of white cards yet
+        var playersWithoutPicks = game.Players.Where(p =>
+                round.JudgeId != p.Id &&
+                round.PickedCards.Count(c => c.PlayerId == p.Id) < round.BlackCard.Picks
+            )
+            .Select(p => $"<@!{p.UserId}>")
+            .ToList();
+
+        var embed = new EmbedBuilder()
+            .WithTitle("Waiting for players to pick white cards")
+            .WithDescription("To pick white card(s), click the button below this message")
+            .WithColor(DiscordConstants.ColorPrimary)
+            .WithThumbnailUrl(DiscordConstants.Banner)
+            .WithCurrentTimestamp()
+            .AddField("Judge", $"<@!{round.Judge.UserId}>")
+            .AddField("Selected black card", round.BlackCard.Text.ToBlackCardText());
+
+        if (playersWithoutPicks.Any())
+        {
+            embed.AddField("Waiting for those players to pick their card(s)", string.Join(", ", playersWithoutPicks));
+        }
+
+        await message.ModifyAsync(m =>
+        {
+            m.Content = "";
+            m.Embed = embed.Build();
+            // TODO: Add [Pick card(s)] button
+        });
     }
 }
