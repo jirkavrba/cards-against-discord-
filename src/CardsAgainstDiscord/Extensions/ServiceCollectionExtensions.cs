@@ -1,5 +1,6 @@
 using CardsAgainstDiscord.Discord;
 using CardsAgainstDiscord.Discord.Commands;
+using CardsAgainstDiscord.Discord.Games;
 using CardsAgainstDiscord.Discord.Interactions;
 using CardsAgainstDiscord.Discord.Lobbies;
 using Discord;
@@ -35,6 +36,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddComponentHandlers(this IServiceCollection services)
     {
         services.AddTransient<IComponentHandler, LobbiesComponentsHandler>();
+        services.AddTransient<IComponentHandler, CardPicksComponentHandler>();
         
         return services;
     }
