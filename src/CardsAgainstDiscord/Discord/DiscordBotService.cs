@@ -36,6 +36,7 @@ public class DiscordBotService : BackgroundService
 
         await _client.LoginAsync(TokenType.Bot, _configuration.Token);
         await _client.StartAsync();
+        await Task.Delay(-1, stoppingToken);
     }
 
     private async Task HandleReadyAsync()

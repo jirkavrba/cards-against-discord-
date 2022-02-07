@@ -23,6 +23,28 @@ public class CreateGameSlashCommand : ISlashCommand
 
     public async Task HandleInvocationAsync(SocketSlashCommand command)
     {
-        await command.DeferAsync();
+        if (command.Channel is not SocketGuildChannel channel)
+        {
+            await command.RespondAsync(embed: EmbedBuilders.Error("Sorry, this command can only be used inside a guild.").Build());
+            return;
+        }
+
+        if (channel is not SocketTextChannel textChannel)
+        {
+            await command.RespondAsync(embed: EmbedBuilders.Error("Okay, how?", "Using commands in voice channels should be straight up illegal.").Build());
+            return;
+        }
+
+        await command.DeferAsync(ephemeral: true);
+        
+        var message = await textChannel.SendMessageAsync("Creating a new game...");
+        var lobby = await _service.CreateLobbyAsync(
+            channel.Guild.Id,
+            textChannel.Id,
+            message.Id,
+            command.User.Id
+        );
+
+        await command.FollowupAsync("Game created!");
     }
 }

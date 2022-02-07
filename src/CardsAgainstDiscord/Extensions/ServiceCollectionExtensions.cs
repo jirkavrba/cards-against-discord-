@@ -16,7 +16,7 @@ public static class ServiceCollectionExtensions
             LogGatewayIntentWarnings = true,
         };
 
-        services.AddTransient(_ => new DiscordSocketClient(configuration));
+        services.AddSingleton(new DiscordSocketClient(configuration));
         services.AddHostedService<DiscordBotService>();
         
         return services;

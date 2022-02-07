@@ -1,4 +1,6 @@
+using CardsAgainstDiscord.Configuration;
 using CardsAgainstDiscord.Data;
+using CardsAgainstDiscord.Discord;
 using CardsAgainstDiscord.Exceptions;
 using CardsAgainstDiscord.Model;
 using CardsAgainstDiscord.Services.Contracts;
@@ -20,11 +22,11 @@ public class LobbiesService : ILobbiesService
         _client = client;
     }
 
-    private Embed LobbyCancelledEmbed => new EmbedBuilder
+    private static Embed LobbyCancelledEmbed => new EmbedBuilder
         {
             Title = "Game cancelled by the owner",
             Description = "To create a new game, please use the **/create-game** slash command",
-            ThumbnailUrl = "https://i.imgur.com/JbVGbzw.png"
+            ThumbnailUrl = DiscordConstants.BannerInactive
         }
         .WithCurrentTimestamp()
         .Build();
@@ -103,11 +105,16 @@ public class LobbiesService : ILobbiesService
     {
         var guild = _client.GetGuild(lobby.GuildId);
         var channel = guild.GetTextChannel(lobby.ChannelId);
-        var message = await channel.GetMessageAsync(lobby.MessageId) as SocketUserMessage;
+
+        if (await channel.GetMessageAsync(lobby.MessageId) is not IUserMessage message)
+        {
+            // TODO: Log error
+            return;
+        }
 
         if (cancelled)
         {
-            await message!.ModifyAsync(m =>
+            await message.ModifyAsync(m =>
             {
                 m.Content = string.Empty;
                 m.Components = Optional<MessageComponent>.Unspecified;
@@ -122,21 +129,23 @@ public class LobbiesService : ILobbiesService
 
         var embed = new EmbedBuilder
             {
+                Color = DiscordConstants.ColorPrimary,
                 Title = "Let's play cards against humanity!",
-                Description = "To join or leave this game, click the button below the message.",
-                ThumbnailUrl = "https://i.imgur.com/Ttu1OPc.png"
+                Description = "To join or leave this game, click the button below the message.\nYou can leave the game by clicking the button again.",
+                ThumbnailUrl = DiscordConstants.Banner
             }
             .AddField("Game owner", $"<@!{lobby.OwnerId}>")
             .AddField("Joined players", players)
+            .WithCurrentTimestamp()
             .Build();
 
         var components = new ComponentBuilder()
-            .WithButton(ButtonBuilder.CreatePrimaryButton("Join / leave this game", $"join:{lobby.Id}"))
-            .WithButton(ButtonBuilder.CreateSecondaryButton("Start game", $"start:{lobby.Id}"))
-            .WithButton(ButtonBuilder.CreateSecondaryButton("Cancel game", $"cancel:{lobby.Id}"))
+            .WithButton(ButtonBuilder.CreatePrimaryButton("Join / leave", $"lobby:join:{lobby.Id}"))
+            .WithButton(ButtonBuilder.CreateSecondaryButton("Start", $"lobby:start:{lobby.Id}"))
+            .WithButton(ButtonBuilder.CreateSecondaryButton("Cancel", $"lobby:cancel:{lobby.Id}"))
             .Build();
 
-        await message!.ModifyAsync(m =>
+        await message.ModifyAsync(m =>
         {
             m.Content = string.Empty;
             m.Embed = embed;
