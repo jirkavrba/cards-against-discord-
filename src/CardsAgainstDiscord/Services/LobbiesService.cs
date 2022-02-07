@@ -73,16 +73,21 @@ public class LobbiesService : ILobbiesService
         await context.SaveChangesAsync();
     }
 
-    public async Task CancelLobbyAsync(int lobbyId)
+    public async Task CancelLobbyAsync(int lobbyId, ulong userId)
     {
         await using var context = await _factory.CreateDbContextAsync();
 
         var lobby = await context.Lobbies.FindAsync(lobbyId)
                     ?? throw new LobbyNotFoundException();
 
+        if (lobby.OwnerId != userId)
+        {
+            throw new UserIsNotLobbyOwnerException();
+        }
+
         context.Lobbies.Remove(lobby);
 
-        await UpdateLobbyEmbedAsync(lobby);
+        await UpdateLobbyEmbedAsync(lobby, cancelled: true);
         await context.SaveChangesAsync();
     }
 
@@ -102,7 +107,7 @@ public class LobbiesService : ILobbiesService
             await message.ModifyAsync(m =>
             {
                 m.Content = string.Empty;
-                m.Components = Optional<MessageComponent>.Unspecified;
+                m.Components = new ComponentBuilder().Build();
                 m.Embed = LobbyCancelledEmbed;
             });
             return;

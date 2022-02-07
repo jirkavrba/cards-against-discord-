@@ -8,5 +8,5 @@ public interface ILobbiesService
 
     public Task ToggleJoinLobbyAsync(int lobbyId, ulong userId);
 
-    public Task CancelLobbyAsync(int lobbyId);
+    public Task CancelLobbyAsync(int lobbyId, ulong userId);
 }
