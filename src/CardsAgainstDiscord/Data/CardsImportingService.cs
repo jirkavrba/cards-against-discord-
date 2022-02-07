@@ -18,7 +18,7 @@ public class CardsImportingService : BackgroundService
         [JsonPropertyName("text")]
         public string Text { get; set; }
         
-        [JsonPropertyName("picks")]
+        [JsonPropertyName("pick")]
         public int Picks { get; set; }
     }
 
