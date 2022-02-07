@@ -72,6 +72,7 @@ public class LobbiesComponentsHandler : IComponentHandler
 
     private async Task StartGame(SocketMessageComponent component, int lobbyId)
     {
+        await _service.StartLobbyAsync(lobbyId, component.User.Id);
     }
 
     private async Task CancelGame(SocketMessageComponent component, int lobbyId)

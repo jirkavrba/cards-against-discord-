@@ -15,10 +15,13 @@ public class LobbiesService : ILobbiesService
 
     private readonly DiscordSocketClient _client;
 
-    public LobbiesService(IDbContextFactory<CardsDbContext> factory, DiscordSocketClient client)
+    private readonly IGameService _gameService;
+
+    public LobbiesService(IDbContextFactory<CardsDbContext> factory, DiscordSocketClient client, IGameService gameService)
     {
         _factory = factory;
         _client = client;
+        _gameService = gameService;
     }
 
     private static Embed LobbyCancelledEmbed => new EmbedBuilder
@@ -91,7 +94,23 @@ public class LobbiesService : ILobbiesService
         await context.SaveChangesAsync();
     }
 
-    private async Task UpdateLobbyEmbedAsync(Lobby lobby, bool cancelled = false)
+    public async Task StartLobbyAsync(int lobbyId, ulong userId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var lobby = await context.Lobbies.FindAsync(lobbyId)
+                    ?? throw new LobbyNotFoundException();
+
+        if (lobby.OwnerId != userId)
+        {
+            throw new UserIsNotLobbyOwnerException();
+        }
+
+        await _gameService.CreateGameAsync(lobby);
+        await UpdateLobbyEmbedAsync(lobby, started: true);
+    }
+
+    private async Task UpdateLobbyEmbedAsync(Lobby lobby, bool cancelled = false, bool started = true)
     {
         var guild = _client.GetGuild(lobby.GuildId);
         var channel = guild.GetTextChannel(lobby.ChannelId);
@@ -99,6 +118,12 @@ public class LobbiesService : ILobbiesService
         if (await channel.GetMessageAsync(lobby.MessageId) is not IUserMessage message)
         {
             // TODO: Log error
+            return;
+        }
+
+        if (started)
+        {
+            await message.DeleteAsync();
             return;
         }
 
