@@ -43,24 +43,11 @@ public class LobbiesComponentsHandler : IComponentHandler
         {
             await action(component, lobbyId);
         }
-        catch (LobbyNotFoundException)
+        catch (EmbeddableException exception)
         {
             await component.FollowupAsync(
                 ephemeral: true,
-                embed: EmbedBuilders.Error(
-                    "Sorry, but this game no longer exists.",
-                    "You can create a new game with the **/create-game** command"
-                ).Build()
-            );
-        }
-        catch (UserIsNotLobbyOwnerException)
-        {
-            await component.FollowupAsync(
-                ephemeral: true,
-                embed: EmbedBuilders.Error(
-                    "Sorry, but only the game owner is allowed to do that",
-                    "You can create a new game with the **/create-game** command"
-                ).Build()
+                embed: EmbedBuilders.Error(exception.Title, exception.Description).Build()
             );
         }
     }

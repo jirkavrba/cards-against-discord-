@@ -85,7 +85,7 @@ public class LobbiesService : ILobbiesService
 
         if (lobby.OwnerId != userId)
         {
-            throw new UserIsNotLobbyOwnerException();
+            throw new UserIsNotTheOwnerException();
         }
 
         context.Lobbies.Remove(lobby);
@@ -103,7 +103,12 @@ public class LobbiesService : ILobbiesService
 
         if (lobby.OwnerId != userId)
         {
-            throw new UserIsNotLobbyOwnerException();
+            throw new UserIsNotTheOwnerException();
+        }
+
+        if (lobby.JoinedPlayers.Count < 2)
+        {
+            throw new TooFewPlayersException();
         }
 
         await _gamesService.CreateGameAsync(lobby);

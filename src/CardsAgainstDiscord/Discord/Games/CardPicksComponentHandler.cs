@@ -11,13 +11,10 @@ namespace CardsAgainstDiscord.Discord.Games;
 
 public class CardPicksComponentHandler : IComponentHandler
 {
-    private readonly IDbContextFactory<CardsDbContext> _factory;
-
     private readonly IGamesService _service;
 
-    public CardPicksComponentHandler(IDbContextFactory<CardsDbContext> factory, IGamesService service)
+    public CardPicksComponentHandler(IGamesService service)
     {
-        _factory = factory;
         _service = service;
     }
 
@@ -114,6 +111,7 @@ public class CardPicksComponentHandler : IComponentHandler
         // If there are more card picks needed
         if (pickAnotherCard)
         {
+            await component.DeleteOriginalResponseAsync();
             await ShowCardsSelection(component, gameId);
             return;
         }
