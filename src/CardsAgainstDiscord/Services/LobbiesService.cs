@@ -110,7 +110,7 @@ public class LobbiesService : ILobbiesService
 
         var players = lobby.JoinedPlayers.Count == 0
             ? "_No players joined this lobby yet_"
-            : string.Join("\n", lobby.JoinedPlayers.Select(id => $"<@!{id}>"));
+            : string.Join(", ", lobby.JoinedPlayers.Select(id => $"<@!{id}>"));
 
         var embed = new EmbedBuilder
             {
@@ -125,9 +125,9 @@ public class LobbiesService : ILobbiesService
             .Build();
 
         var components = new ComponentBuilder()
-            .WithButton(ButtonBuilder.CreatePrimaryButton("Join / leave", $"lobby:join:{lobby.Id}"))
-            .WithButton(ButtonBuilder.CreateSecondaryButton("Start", $"lobby:start:{lobby.Id}"))
-            .WithButton(ButtonBuilder.CreateSecondaryButton("Cancel", $"lobby:cancel:{lobby.Id}"))
+            .WithButton(ButtonBuilder.CreatePrimaryButton("👋 Join / leave", $"lobby:join:{lobby.Id}"))
+            .WithButton(ButtonBuilder.CreateSecondaryButton("😎 Start", $"lobby:start:{lobby.Id}"))
+            .WithButton(ButtonBuilder.CreateSecondaryButton("💀 Cancel", $"lobby:cancel:{lobby.Id}"))
             .Build();
 
         await message.ModifyAsync(m =>
