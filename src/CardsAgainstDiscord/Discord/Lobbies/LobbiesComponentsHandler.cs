@@ -44,7 +44,7 @@ public class LobbiesComponentsHandler : IComponentHandler
     {
         try
         {
-            await _service.JoinLobbyAsync(lobbyId, component.User.Id);
+            await _service.ToggleJoinLobbyAsync(lobbyId, component.User.Id);
         }
         catch (LobbyNotFoundException)
         {

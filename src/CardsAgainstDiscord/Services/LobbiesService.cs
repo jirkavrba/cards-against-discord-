@@ -1,4 +1,3 @@
-using CardsAgainstDiscord.Configuration;
 using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Discord;
 using CardsAgainstDiscord.Exceptions;
@@ -52,25 +51,7 @@ public class LobbiesService : ILobbiesService
         return lobby;
     }
 
-    public async Task JoinLobbyAsync(int lobbyId, ulong userId)
-    {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var lobby = await context.Lobbies.FindAsync(lobbyId)
-                    ?? throw new LobbyNotFoundException();
-
-        if (!lobby.JoinedPlayers.Contains(userId))
-        {
-            lobby.JoinedPlayers.Add(userId);
-        }
-
-        context.Lobbies.Update(lobby);
-
-        await UpdateLobbyEmbedAsync(lobby);
-        await context.SaveChangesAsync();
-    }
-
-    public async Task LeaveLobbyAsync(int lobbyId, ulong userId)
+    public async Task ToggleJoinLobbyAsync(int lobbyId, ulong userId)
     {
         await using var context = await _factory.CreateDbContextAsync();
 
@@ -80,6 +61,10 @@ public class LobbiesService : ILobbiesService
         if (lobby.JoinedPlayers.Contains(userId))
         {
             lobby.JoinedPlayers.Remove(userId);
+        }
+        else
+        {
+            lobby.JoinedPlayers.Add(userId);
         }
 
         context.Lobbies.Update(lobby);
