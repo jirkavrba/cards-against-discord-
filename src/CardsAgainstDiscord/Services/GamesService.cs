@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CardsAgainstDiscord.Services;
 
-public class GameService : IGameService
+public class GamesService : IGamesService
 {
     private readonly IDbContextFactory<CardsDbContext> _factory;
 
-    public GameService(IDbContextFactory<CardsDbContext> factory)
+    public GamesService(IDbContextFactory<CardsDbContext> factory)
     {
         _factory = factory;
     }

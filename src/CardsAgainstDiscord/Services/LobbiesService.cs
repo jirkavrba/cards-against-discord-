@@ -15,13 +15,13 @@ public class LobbiesService : ILobbiesService
 
     private readonly DiscordSocketClient _client;
 
-    private readonly IGameService _gameService;
+    private readonly IGamesService _gamesService;
 
-    public LobbiesService(IDbContextFactory<CardsDbContext> factory, DiscordSocketClient client, IGameService gameService)
+    public LobbiesService(IDbContextFactory<CardsDbContext> factory, DiscordSocketClient client, IGamesService gamesService)
     {
         _factory = factory;
         _client = client;
-        _gameService = gameService;
+        _gamesService = gamesService;
     }
 
     private static Embed LobbyCancelledEmbed => new EmbedBuilder
@@ -106,7 +106,7 @@ public class LobbiesService : ILobbiesService
             throw new UserIsNotLobbyOwnerException();
         }
 
-        await _gameService.CreateGameAsync(lobby);
+        await _gamesService.CreateGameAsync(lobby);
         await UpdateLobbyEmbedAsync(lobby, started: true);
     }
 
