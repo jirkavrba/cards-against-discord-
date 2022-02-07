@@ -104,6 +104,11 @@ public class GamesService : IGamesService
         var player = await context.Players
             .Include(p => p.PickedCards)
             .FirstOrDefaultAsync(p => p.UserId == playerId) ?? throw new PlayerNotFoundException();
+
+        if (player.PickedCards.Count == round.BlackCard.Picks)
+        {
+            throw new AlreadyPickedAllWhiteCardsException();
+        }
         
         var pick = new PickedCard
         {
@@ -112,7 +117,6 @@ public class GamesService : IGamesService
             WhiteCardId = cardId
         };
 
-        // TODO: Check if all players have submitted their white cards
         await context.Picks.AddAsync(pick);
         await context.SaveChangesAsync();
 

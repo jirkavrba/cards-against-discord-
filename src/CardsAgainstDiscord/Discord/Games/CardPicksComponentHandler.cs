@@ -83,7 +83,7 @@ public class CardPicksComponentHandler : IComponentHandler
                 // I hope there is not a white card with text over 200 chars...
                 Label = c.Text.SafeSubstring(0, 100),
                 Description = c.Text.Length >= 100 ? c.Text.SafeSubstring(100, 200) : null,
-                Value = c.Id.ToString(),
+                Value = c.Id.ToString()
             })
             .ToList();
 
@@ -108,7 +108,7 @@ public class CardPicksComponentHandler : IComponentHandler
     private async Task PickCard(SocketMessageComponent component, int gameId)
     {
         var playerId = component.User.Id;
-        var cardId = int.Parse(component.Data.CustomId.Split(":")[2]);
+        var cardId = int.Parse(component.Data.Values.First());
 
         var pickAnotherCard = await _service.SubmitPickedCardAsync(gameId, playerId, cardId);
 

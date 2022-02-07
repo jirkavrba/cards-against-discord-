@@ -26,11 +26,6 @@ public static class StringExtensions
 
     public static string SafeSubstring(this string original, int start, int length)
     {
-        if (start >= original.Length)
-        {
-            return string.Empty;
-        }
-
-        return original.Substring(start, Math.Min(start + length, original.Length));
+        return start >= original.Length ? string.Empty : original.Substring(start, Math.Min(start + length, original.Length - start));
     }
 }
