@@ -24,7 +24,7 @@ public class LobbiesService : ILobbiesService
     private static Embed LobbyCancelledEmbed => new EmbedBuilder
         {
             Title = "Game cancelled by the owner",
-            Description = "To create a new game, please use the **/create-game** slash command",
+            Description = "You can create a new game with the **/create-game** command",
             ThumbnailUrl = DiscordConstants.BannerInactive
         }
         .WithCurrentTimestamp()
