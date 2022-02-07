@@ -78,7 +78,7 @@ public class CardPicksComponentHandler : IComponentHandler
         // TODO: Add support for multiple white cards 
         var embed = new EmbedBuilder()
             .WithColor(DiscordConstants.ColorPrimary)
-            .WithTitle("Pick a white card to fill in the blanks")
+            .WithTitle("Pick a white card to fill in the highlighted blank")
             .WithDescription(game.CurrentRound?.BlackCard.Text.FormatBlackCard(new List<string>()))
             .AddField("Available white cards:", texts)
             .Build();
