@@ -1,6 +1,7 @@
 using CardsAgainstDiscord.Configuration;
 using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Discord;
+using CardsAgainstDiscord.Exceptions;
 using CardsAgainstDiscord.Extensions;
 using CardsAgainstDiscord.Model;
 using CardsAgainstDiscord.Services.Contracts;
@@ -39,6 +40,19 @@ public class GamesService : IGamesService
 
         await context.SaveChangesAsync();
         await CreateGameRound(game);
+
+        return game;
+    }
+
+    public async Task<Game> GetPopulatedGameAsync(int gameId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games.Where(g => g.Id == gameId)
+            .Include(g => g.CurrentRound)
+            .Include(g => g.Players)
+            .ThenInclude(p => p.WhiteCards)
+            .FirstOrDefaultAsync() ?? throw new GameNotFoundException();
 
         return game;
     }

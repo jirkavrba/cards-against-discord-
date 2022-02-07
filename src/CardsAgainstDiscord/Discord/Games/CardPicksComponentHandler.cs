@@ -1,5 +1,9 @@
+using System.Net.Mime;
+using System.Runtime.InteropServices.ObjectiveC;
 using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Discord.Interactions;
+using CardsAgainstDiscord.Exceptions;
+using CardsAgainstDiscord.Migrations;
 using CardsAgainstDiscord.Services.Contracts;
 using Discord;
 using Discord.WebSocket;
@@ -40,11 +44,47 @@ public class CardPicksComponentHandler : IComponentHandler
             _ => throw new ArgumentOutOfRangeException(nameof(component))
         };
 
-        // TODO: Try-catch domain exceptions
-        await handler(component, gameId);
+        try
+        {
+            await handler(component, gameId);
+        }
+        catch (PlayerNotFoundException)
+        {
+            await component.FollowupAsync(
+                embed: EmbedBuilders.Error("You're not participating in this game").Build(),
+                ephemeral: true
+            );
+        }
     }
 
     private async Task ShowCardsSelection(SocketMessageComponent component, int gameId)
     {
+        var game = await _service.GetPopulatedGameAsync(gameId);
+        var player = game.Players.FirstOrDefault(p => p.UserId == component.User.Id)
+                     ?? throw new PlayerNotFoundException();
+
+        var options = player.WhiteCards.Select(c => new SelectMenuOptionBuilder
+            {
+                Label = c.Text,
+                Value = c.Id.ToString(),
+            })
+            .ToList();
+
+        // TODO: Add support for multiple white cards 
+        var embed = new EmbedBuilder()
+            .WithTitle("Pick a card to fill in the first blank")
+            .WithDescription("* Insert black card with highlighted blank here *")
+            .WithColor(DiscordConstants.ColorPrimary)
+            .Build();
+        
+        var select = new ComponentBuilder()
+            .WithSelectMenu($"game:pick:{gameId}", options, "Pick your card")
+            .Build();
+
+        await component.FollowupAsync(
+            ephemeral: true,
+            embed: embed,
+            components: select
+        );
     }
 }
