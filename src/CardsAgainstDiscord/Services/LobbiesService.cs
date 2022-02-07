@@ -110,7 +110,7 @@ public class LobbiesService : ILobbiesService
         await UpdateLobbyEmbedAsync(lobby, started: true);
     }
 
-    private async Task UpdateLobbyEmbedAsync(Lobby lobby, bool cancelled = false, bool started = true)
+    private async Task UpdateLobbyEmbedAsync(Lobby lobby, bool cancelled = false, bool started = false)
     {
         var guild = _client.GetGuild(lobby.GuildId);
         var channel = guild.GetTextChannel(lobby.ChannelId);
