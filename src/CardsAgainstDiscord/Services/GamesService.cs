@@ -18,6 +18,11 @@ public class GamesService : IGamesService
 
     private readonly IDbContextFactory<CardsDbContext> _factory;
 
+    /// <summary>
+    /// Number of white cards in each player's hand
+    /// </summary>
+    private const int HandSize = 8;
+
     public GamesService(DiscordSocketClient client, IDbContextFactory<CardsDbContext> factory)
     {
         _client = client;
@@ -89,9 +94,32 @@ public class GamesService : IGamesService
             BlackCard = selectedBlackCard,
         };
 
-        // TODO: Add missing white cards to every player's hand
+        // Add missing white cards to each player from pool of white cards that have not been used yet
+        var availableWhiteCards = context.WhiteCards.Where(c =>
+                !context.Rounds.Where(r => r.GameId == game.Id)
+                    .Include(r => r.PickedCards)
+                    .SelectMany(r => r.PickedCards.Select(p => p.WhiteCardId))
+                    .Contains(c.Id)
+            )
+            .ToList() // Needed in order to change the context to local evaluation
+            .OrderBy(_ => random.Next())
+            .ToList();
+
+        players.Aggregate(0, (cardsTaken, player) =>
+        {
+            var missingCards = HandSize - player.WhiteCards.Count;
+            
+            player.WhiteCards.AddRange(
+                availableWhiteCards
+                    .Skip(cardsTaken)
+                    .Take(missingCards)
+            );
+
+            return cardsTaken + missingCards;
+        });
 
         context.Games.Update(game);
+        context.Players.UpdateRange(players);
 
         // Context has to be disposed manually so it can be passed to LINQ lambdas
         await context.SaveChangesAsync();
