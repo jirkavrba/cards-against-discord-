@@ -209,8 +209,8 @@ public class GamesService : IGamesService
         await using var context = await _factory.CreateDbContextAsync();
 
         var game = await context.Games
-            .Include(g => g.CurrentRound).ThenInclude(r => r.PickedCards)
-            .Include(g => g.CurrentRound).ThenInclude(r => r.BlackCard)
+            .Include(g => g.CurrentRound).ThenInclude(r => r!.PickedCards)
+            .Include(g => g.CurrentRound).ThenInclude(r => r!.BlackCard)
             .FirstOrDefaultAsync() ?? throw new GameNotFoundException();
 
         await UpdateGameRoundEmbedAsync(game);
