@@ -10,22 +10,20 @@ var host = Host.CreateDefaultBuilder(args)
     {
         builder.AddEnvironmentVariables();
 
-        if (host.HostingEnvironment.IsDevelopment())
-        {
-            builder.AddUserSecrets<Program>();
-        }
+        if (host.HostingEnvironment.IsDevelopment()) builder.AddUserSecrets<Program>();
     })
     .ConfigureServices((host, services) =>
     {
         var configuration = host.Configuration;
-        
+
         services.Configure<DiscordConfiguration>(configuration.GetRequiredSection(DiscordConfiguration.Section));
 
-        services.AddDbContextFactory<CardsDbContext>(options => options.UseNpgsql(configuration.GetConnectionString("Default")));
-        
+        services.AddDbContextFactory<CardsDbContext>(options =>
+            options.UseNpgsql(configuration.GetConnectionString("Default")));
+
         services.AddTransient<ILobbiesService, LobbiesService>();
         services.AddTransient<IGamesService, GamesService>();
-        
+
         services.AddDiscordBot();
         services.AddSlashCommands();
         services.AddComponentHandlers();

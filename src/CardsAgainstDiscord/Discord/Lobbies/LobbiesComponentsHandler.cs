@@ -20,10 +20,7 @@ public class LobbiesComponentsHandler : IComponentHandler
         var id = component.Data.CustomId ?? "";
 
         // Lobbies can be only interacted with using message buttons
-        if (component.Data.Type != ComponentType.Button || !id.StartsWith("lobby:"))
-        {
-            return;
-        }
+        if (component.Data.Type != ComponentType.Button || !id.StartsWith("lobby:")) return;
 
         await component.DeferAsync();
 
@@ -36,7 +33,7 @@ public class LobbiesComponentsHandler : IComponentHandler
             "join" => JoinLobby,
             "start" => StartGame,
             "cancel" => CancelGame,
-            _ => throw new ArgumentOutOfRangeException(nameof(parts)),
+            _ => throw new ArgumentOutOfRangeException(nameof(parts))
         };
 
         try

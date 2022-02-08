@@ -11,19 +11,19 @@ public class DiscordBotService : BackgroundService
 {
     private readonly DiscordSocketClient _client;
 
-    private readonly DiscordConfiguration _configuration;
+    private readonly IEnumerable<IComponentHandler> _componentHandlers;
 
-    private readonly ILogger<DiscordBotService> _logger;
+    private readonly DiscordConfiguration _configuration;
 
     private readonly ISlashCommandDispatcher _dispatcher;
 
-    private readonly IEnumerable<IComponentHandler> _componentHandlers;
+    private readonly ILogger<DiscordBotService> _logger;
 
     public DiscordBotService(
         DiscordSocketClient client,
         IOptions<DiscordConfiguration> configuration,
         ILogger<DiscordBotService> logger,
-        ISlashCommandDispatcher dispatcher, 
+        ISlashCommandDispatcher dispatcher,
         IEnumerable<IComponentHandler> componentHandlers
     )
     {
@@ -48,26 +48,20 @@ public class DiscordBotService : BackgroundService
 
     private async Task HandleInteraction(SocketMessageComponent component)
     {
-        foreach (var handler in _componentHandlers)
-        {
-            await handler.HandleInteractionAsync(component);
-        }
+        foreach (var handler in _componentHandlers) await handler.HandleInteractionAsync(component);
     }
 
     private async Task HandleReadyAsync()
     {
         await _dispatcher.RegisterCommandsAsync(_client);
-        
+
         await _client.SetStatusAsync(UserStatus.Offline);
         await _client.SetGameAsync("cards against humanity");
     }
 
     private Task HandleLogMessage(LogMessage message)
     {
-        if (message.Exception != null)
-        {
-            _logger.LogCritical("Exception: {exception}", message.Exception);
-        }
+        if (message.Exception != null) _logger.LogCritical("Exception: {exception}", message.Exception);
 
         _logger.LogInformation("{message}", message.Message);
 

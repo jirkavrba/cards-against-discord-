@@ -14,7 +14,7 @@ public class CreateGameSlashCommand : ISlashCommand
         _service = service;
     }
 
-    public ApplicationCommandProperties Properties => new SlashCommandBuilder()
+    public ApplicationCommandProperties Properties => new SlashCommandBuilder
         {
             Name = "create-game",
             Description = "Creates a new game of cards against humanity"
@@ -25,13 +25,15 @@ public class CreateGameSlashCommand : ISlashCommand
     {
         if (command.Channel is not SocketGuildChannel channel)
         {
-            await command.RespondAsync(embed: EmbedBuilders.Error("Sorry, this command can only be used inside a guild.").Build());
+            await command.RespondAsync(embed: EmbedBuilders
+                .Error("Sorry, this command can only be used inside a guild.").Build());
             return;
         }
 
         if (channel is not SocketTextChannel textChannel)
         {
-            await command.RespondAsync(embed: EmbedBuilders.Error("Okay, how?", "Using commands in voice channels should be straight up illegal.").Build());
+            await command.RespondAsync(embed: EmbedBuilders
+                .Error("Okay, how?", "Using commands in voice channels should be straight up illegal.").Build());
             return;
         }
 
@@ -41,13 +43,12 @@ public class CreateGameSlashCommand : ISlashCommand
         );
 
         var message = await textChannel.SendMessageAsync("Creating a new game...");
-        
+
         await _service.CreateLobbyAsync(
             channel.Guild.Id,
             textChannel.Id,
             message.Id,
             command.User.Id
         );
-        
     }
 }

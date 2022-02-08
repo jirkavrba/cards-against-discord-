@@ -1,13 +1,9 @@
-using System.Reflection.Metadata;
-using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Discord.Interactions;
 using CardsAgainstDiscord.Exceptions;
 using CardsAgainstDiscord.Extensions;
 using CardsAgainstDiscord.Services.Contracts;
 using Discord;
 using Discord.WebSocket;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 
 namespace CardsAgainstDiscord.Discord.Games;
 
@@ -24,10 +20,7 @@ public class CardPicksComponentHandler : IComponentHandler
     {
         var id = component.Data.CustomId ?? string.Empty;
 
-        if (!id.StartsWith("game:"))
-        {
-            return;
-        }
+        if (!id.StartsWith("game:")) return;
 
         await component.DeferAsync();
 
@@ -137,7 +130,7 @@ public class CardPicksComponentHandler : IComponentHandler
         var winnerId = int.Parse(component.Data.Values.First());
 
         var (winner, submission) = await _service.SubmitWinnerAsync(gameId, playerId, winnerId);
-        
+
         var embed = new EmbedBuilder()
             .WithTitle("The judge picked this submission as the winner")
             .WithDescription(submission)

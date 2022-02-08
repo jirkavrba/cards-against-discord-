@@ -15,21 +15,21 @@ public static class ServiceCollectionExtensions
         var configuration = new DiscordSocketConfig
         {
             GatewayIntents = GatewayIntents.AllUnprivileged,
-            LogGatewayIntentWarnings = true,
+            LogGatewayIntentWarnings = true
         };
 
         services.AddSingleton(new DiscordSocketClient(configuration));
         services.AddHostedService<DiscordBotService>();
-        
+
         return services;
     }
 
     public static IServiceCollection AddSlashCommands(this IServiceCollection services)
     {
         services.AddTransient<ISlashCommandDispatcher, SlashCommandDispatcher>();
-        
+
         services.AddTransient<ISlashCommand, CreateGameSlashCommand>();
-        
+
         return services;
     }
 
@@ -37,7 +37,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddTransient<IComponentHandler, LobbiesComponentsHandler>();
         services.AddTransient<IComponentHandler, CardPicksComponentHandler>();
-        
+
         return services;
     }
 }

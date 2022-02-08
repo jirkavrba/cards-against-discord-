@@ -1,9 +1,7 @@
 using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Discord;
-using CardsAgainstDiscord.Discord.Lobbies;
 using CardsAgainstDiscord.Exceptions;
 using CardsAgainstDiscord.Extensions;
-using CardsAgainstDiscord.Migrations;
 using CardsAgainstDiscord.Model;
 using CardsAgainstDiscord.Services.Contracts;
 using Discord;
@@ -15,14 +13,14 @@ namespace CardsAgainstDiscord.Services;
 
 public class GamesService : IGamesService
 {
+    /// <summary>
+    ///     Number of white cards in each player's hand
+    /// </summary>
+    private const int HandSize = 8;
+
     private readonly DiscordSocketClient _client;
 
     private readonly IDbContextFactory<CardsDbContext> _factory;
-
-    /// <summary>
-    /// Number of white cards in each player's hand
-    /// </summary>
-    private const int HandSize = 8;
 
     public GamesService(DiscordSocketClient client, IDbContextFactory<CardsDbContext> factory)
     {
@@ -77,16 +75,11 @@ public class GamesService : IGamesService
                      ?? throw new PlayerNotFoundException();
 
         // Do not allow judge to pick white cards
-        if (round.JudgeId == player.Id)
-        {
-            throw new PlayerIsJudgeException();
-        }
+        if (round.JudgeId == player.Id) throw new PlayerIsJudgeException();
 
         // Do not allow users to pick more than <black card picks> cards
         if (player.PickedCards.Count(p => p.RoundId == round.Id) >= round.BlackCard.Picks)
-        {
             throw new AlreadyPickedAllWhiteCardsException();
-        }
 
         return player.WhiteCards;
     }
@@ -119,9 +112,7 @@ public class GamesService : IGamesService
                      throw new PlayerNotFoundException();
 
         if (player.PickedCards.Count(p => p.RoundId == round.Id) >= round.BlackCard.Picks)
-        {
             throw new AlreadyPickedAllWhiteCardsException();
-        }
 
         var card = player.WhiteCards.First(c => c.Id == cardId);
         var pick = new PickedCard
@@ -142,10 +133,7 @@ public class GamesService : IGamesService
 
 
         // If the player needs to pick more cards, early return true
-        if (round.PickedCards.Count(r => r.PlayerId == player.Id) < round.BlackCard.Picks)
-        {
-            return true;
-        }
+        if (round.PickedCards.Count(r => r.PlayerId == player.Id) < round.BlackCard.Picks) return true;
 
         // Check, whether all players have submitted all picks
         // There has to be (player - 1 judge) * black picks cards picked
@@ -173,6 +161,37 @@ public class GamesService : IGamesService
                    ?? throw new GameNotFoundException();
 
         await CreateGameRound(game);
+    }
+
+    public async Task<(Player, string)> SubmitWinnerAsync(int gameId, ulong playerId, int winnerId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+            .Include(g => g.Players)
+            .Include(g => g.CurrentRound).ThenInclude(p => p.Judge)
+            .Include(g => g.CurrentRound).ThenInclude(p => p.BlackCard)
+            .Include(g => g.CurrentRound)
+            .ThenInclude(p => p.PickedCards)
+            .ThenInclude(c => c.WhiteCard)
+            .FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
+
+        if (playerId != game.CurrentRound.Judge.UserId) throw new PlayerIsNotJudgeException();
+
+        var winner = game.Players.FirstOrDefault(p => p.Id == winnerId)
+                     ?? throw new PlayerNotFoundException();
+
+        var cards = game.CurrentRound.PickedCards.Where(p => p.PlayerId == winnerId)
+            .Select(c => c.WhiteCard.Text)
+            .ToList();
+
+        var submission = game.CurrentRound.BlackCard.Text.FormatBlackCard(cards);
+
+        // TODO: Update score
+
+        await CreateGameRound(game);
+
+        return (winner, submission);
     }
 
     private async Task CreateGameRound(Game game)
@@ -204,7 +223,7 @@ public class GamesService : IGamesService
             GameId = game.Id,
             MessageId = message.Id,
             Judge = nextJudge,
-            BlackCard = selectedBlackCard,
+            BlackCard = selectedBlackCard
         };
 
         // Add missing white cards to each player from pool of white cards that have not been used yet
@@ -262,10 +281,7 @@ public class GamesService : IGamesService
         var guild = _client.GetGuild(game.GuildId);
         var channel = guild.GetTextChannel(game.ChannelId);
 
-        if (await channel.GetMessageAsync(round.MessageId) is not IUserMessage message)
-        {
-            return;
-        }
+        if (await channel.GetMessageAsync(round.MessageId) is not IUserMessage message) return;
 
         var players = game.Players
             .Where(p => p.Id != round.JudgeId)
@@ -316,10 +332,7 @@ public class GamesService : IGamesService
         var guild = _client.GetGuild(game.GuildId);
         var channel = guild.GetTextChannel(game.ChannelId);
 
-        if (await channel.GetMessageAsync(game.CurrentRound!.MessageId) is not IUserMessage message)
-        {
-            return;
-        }
+        if (await channel.GetMessageAsync(game.CurrentRound!.MessageId) is not IUserMessage message) return;
 
         var blackCard = game.CurrentRound.BlackCard.Text;
 
@@ -360,39 +373,5 @@ public class GamesService : IGamesService
             embed: embed,
             components: components
         );
-    }
-
-    public async Task<(Player, string)> SubmitWinnerAsync(int gameId, ulong playerId, int winnerId)
-    {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var game = await context.Games
-            .Include(g => g.Players)
-            .Include(g => g.CurrentRound).ThenInclude(p => p.Judge)
-            .Include(g => g.CurrentRound).ThenInclude(p => p.BlackCard)
-            .Include(g => g.CurrentRound)
-            .ThenInclude(p => p.PickedCards)
-            .ThenInclude(c => c.WhiteCard)
-            .FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
-
-        if (playerId != game.CurrentRound.Judge.UserId)
-        {
-            throw new PlayerIsNotJudgeException();
-        }
-
-        var winner = game.Players.FirstOrDefault(p => p.Id == winnerId)
-                     ?? throw new PlayerNotFoundException();
-
-        var cards = game.CurrentRound.PickedCards.Where(p => p.PlayerId == winnerId)
-            .Select(c => c.WhiteCard.Text)
-            .ToList();
-
-        var submission = game.CurrentRound.BlackCard.Text.FormatBlackCard(cards);
-
-        // TODO: Update score
-
-        await CreateGameRound(game);
-
-        return (winner, submission);
     }
 }

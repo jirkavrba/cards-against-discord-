@@ -11,13 +11,13 @@ namespace CardsAgainstDiscord.Services;
 
 public class LobbiesService : ILobbiesService
 {
-    private readonly IDbContextFactory<CardsDbContext> _factory;
-
     private readonly DiscordSocketClient _client;
+    private readonly IDbContextFactory<CardsDbContext> _factory;
 
     private readonly IGamesService _gamesService;
 
-    public LobbiesService(IDbContextFactory<CardsDbContext> factory, DiscordSocketClient client, IGamesService gamesService)
+    public LobbiesService(IDbContextFactory<CardsDbContext> factory, DiscordSocketClient client,
+        IGamesService gamesService)
     {
         _factory = factory;
         _client = client;
@@ -62,13 +62,9 @@ public class LobbiesService : ILobbiesService
                     ?? throw new LobbyNotFoundException();
 
         if (lobby.JoinedPlayers.Contains(userId))
-        {
             lobby.JoinedPlayers.Remove(userId);
-        }
         else
-        {
             lobby.JoinedPlayers.Add(userId);
-        }
 
         context.Lobbies.Update(lobby);
 
@@ -83,14 +79,11 @@ public class LobbiesService : ILobbiesService
         var lobby = await context.Lobbies.FindAsync(lobbyId)
                     ?? throw new LobbyNotFoundException();
 
-        if (lobby.OwnerId != userId)
-        {
-            throw new UserIsNotTheOwnerException();
-        }
+        if (lobby.OwnerId != userId) throw new UserIsNotTheOwnerException();
 
         context.Lobbies.Remove(lobby);
 
-        await UpdateLobbyEmbedAsync(lobby, cancelled: true);
+        await UpdateLobbyEmbedAsync(lobby, true);
         await context.SaveChangesAsync();
     }
 
@@ -101,15 +94,9 @@ public class LobbiesService : ILobbiesService
         var lobby = await context.Lobbies.FindAsync(lobbyId)
                     ?? throw new LobbyNotFoundException();
 
-        if (lobby.OwnerId != userId)
-        {
-            throw new UserIsNotTheOwnerException();
-        }
+        if (lobby.OwnerId != userId) throw new UserIsNotTheOwnerException();
 
-        if (lobby.JoinedPlayers.Count < 2)
-        {
-            throw new TooFewPlayersException();
-        }
+        if (lobby.JoinedPlayers.Count < 2) throw new TooFewPlayersException();
 
         await _gamesService.CreateGameAsync(lobby);
         await UpdateLobbyEmbedAsync(lobby, started: true);
@@ -121,10 +108,8 @@ public class LobbiesService : ILobbiesService
         var channel = guild.GetTextChannel(lobby.ChannelId);
 
         if (await channel.GetMessageAsync(lobby.MessageId) is not IUserMessage message)
-        {
             // TODO: Log error
             return;
-        }
 
         if (started)
         {
@@ -151,7 +136,8 @@ public class LobbiesService : ILobbiesService
             {
                 Color = DiscordConstants.ColorPrimary,
                 Title = "Let's play cards against humanity!",
-                Description = "To join or leave this game, click the button below the message.\nYou can leave the game by clicking the button again.",
+                Description =
+                    "To join or leave this game, click the button below the message.\nYou can leave the game by clicking the button again.",
                 ThumbnailUrl = DiscordConstants.Banner
             }
             .AddField("Game owner", $"<@!{lobby.OwnerId}>")

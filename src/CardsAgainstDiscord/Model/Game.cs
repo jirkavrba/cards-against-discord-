@@ -10,24 +10,24 @@ public class Game
     public int Id { get; set; }
 
     /// <summary>
-    /// ID of the guild that this game is being played in
+    ///     ID of the guild that this game is being played in
     /// </summary>
     [Required]
     public ulong GuildId { get; set; }
 
     /// <summary>
-    /// ID of the channel that this game is being played in
+    ///     ID of the channel that this game is being played in
     /// </summary>
     [Required]
     public ulong ChannelId { get; set; }
 
     /// <summary>
-    /// Currently played game round
+    ///     Currently played game round
     /// </summary>
     public GameRound? CurrentRound { get; set; } = null;
 
     /// <summary>
-    /// Mapped list of players that belong to this game
+    ///     Mapped list of players that belong to this game
     /// </summary>
     public List<Player> Players { get; set; } = new();
 }
