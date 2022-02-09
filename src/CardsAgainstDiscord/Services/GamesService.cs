@@ -213,9 +213,12 @@ public class GamesService : IGamesService
         var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId)
             ?? throw new GameNotFoundException();
 
-        game.JoiningPlayers.Add(userId);
-        game.LeavingPlayers.Remove(userId);
-        
+        if (!game.JoiningPlayers.Contains(userId))
+        {
+            game.JoiningPlayers.Add(userId);
+            game.LeavingPlayers.Remove(userId);
+        }
+
         context.Games.Update(game);
 
         await context.SaveChangesAsync();
@@ -228,9 +231,12 @@ public class GamesService : IGamesService
         var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId)
             ?? throw new GameNotFoundException();
 
-        game.JoiningPlayers.Remove(userId);
-        game.LeavingPlayers.Add(userId);
-        
+        if (!game.LeavingPlayers.Contains(userId))
+        {
+            game.JoiningPlayers.Remove(userId);
+            game.LeavingPlayers.Add(userId);
+        }
+
         context.Games.Update(game);
 
         await context.SaveChangesAsync();
