@@ -10,5 +10,5 @@ public interface ILobbiesService
 
     public Task CancelLobbyAsync(int lobbyId, ulong userId);
 
-    public Task StartLobbyAsync(int lobbyId, ulong userId);
+    public Task StartGameAsync(int lobbyId, ulong userId);
 }

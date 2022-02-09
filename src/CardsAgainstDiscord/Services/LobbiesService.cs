@@ -87,7 +87,7 @@ public class LobbiesService : ILobbiesService
         await context.SaveChangesAsync();
     }
 
-    public async Task StartLobbyAsync(int lobbyId, ulong userId)
+    public async Task StartGameAsync(int lobbyId, ulong userId)
     {
         await using var context = await _factory.CreateDbContextAsync();
 
