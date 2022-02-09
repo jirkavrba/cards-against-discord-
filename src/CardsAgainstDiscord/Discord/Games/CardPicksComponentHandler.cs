@@ -72,7 +72,7 @@ public class CardPicksComponentHandler : IComponentHandler
 
         await button.ModifyOriginalResponseAsync(m =>
         {
-            m.Content = "👌";
+            m.Content = "All white cards selected 👌";
             m.Embed = null;
             m.Components = new ComponentBuilder().Build();
         });
