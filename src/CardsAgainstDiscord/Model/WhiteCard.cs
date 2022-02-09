@@ -5,16 +5,6 @@ namespace CardsAgainstDiscord.Model;
 
 public class WhiteCard
 {
-    /// <summary>
-    ///     Mapped list of all picks this white card was selected in
-    /// </summary>
-    public List<PickedCard> Picks = new();
-
-    /// <summary>
-    ///     Mapped list of players that have this white card in their hands
-    /// </summary>
-    public List<Player> Players = new();
-
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
@@ -24,4 +14,19 @@ public class WhiteCard
     /// </summary>
     [Required]
     public string Text { get; set; } = null!;
+
+    /// <summary>
+    ///     Mapped list of all picks this white card was selected in
+    /// </summary>
+    public List<PickedCard> Picks { get; set; } = new();
+
+    /// <summary>
+    ///     Mapped list of players that have this white card in their hands
+    /// </summary>
+    public List<Player> Players { get; set; } = new();
+
+    /// <summary>
+    ///     Mapped list of games that this card was used in
+    /// </summary>
+    public List<Game> Games { get; set; } = new();
 }

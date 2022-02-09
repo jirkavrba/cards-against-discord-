@@ -5,21 +5,6 @@ namespace CardsAgainstDiscord.Model;
 
 public class Player
 {
-    /// <summary>
-    ///     Mapped list of all rounds where this player is the judge
-    /// </summary>
-    public List<GameRound> JudgingRounds = new();
-
-    /// <summary>
-    ///     Mapped list of picked white cards (in all rounds)
-    /// </summary>
-    public List<PickedCard> PickedCards = new();
-
-    /// <summary>
-    ///     Mapped white cards that this player has in his hand
-    /// </summary>
-    public List<WhiteCard> WhiteCards = new();
-
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
@@ -37,7 +22,32 @@ public class Player
     public int GameId { get; set; }
 
     /// <summary>
+    ///     Id of the currently selected white card (so that there can be confirmation button)
+    /// </summary>
+    public int? SelectedWhiteCardId { get; set; } = null;
+
+    /// <summary>
     ///     Mapped game that this player belongs to
     /// </summary>
     public Game Game { get; set; } = null!;
+
+    /// <summary>
+    ///     Mapped selected white card
+    /// </summary>
+    public WhiteCard? SelectedWhiteCard { get; set; } = null;
+
+    /// <summary>
+    ///     Mapped games where the player is the judge
+    /// </summary>
+    public IEnumerable<Game> JudgedGames { get; set; } = new List<Game>();
+
+    /// <summary>
+    ///     Mapped list of picked white cards (in all rounds)
+    /// </summary>
+    public IEnumerable<PickedCard> PickedCards { get; set; } = new List<PickedCard>();
+
+    /// <summary>
+    ///     Mapped white cards that this player has in his hand
+    /// </summary>
+    public IEnumerable<WhiteCard> WhiteCards { get; set; } = new List<WhiteCard>();
 }

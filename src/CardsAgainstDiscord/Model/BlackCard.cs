@@ -22,7 +22,7 @@ public class BlackCard
     public int Picks { get; set; } = 0;
 
     /// <summary>
-    ///     List of all game rounds that this card was picked in
+    ///     List of all games that this card was picked in
     /// </summary>
-    public List<GameRound> Rounds { get; set; } = null!;
+    public List<Game> Games { get; set; } = null!;
 }

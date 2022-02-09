@@ -19,7 +19,10 @@ var host = Host.CreateDefaultBuilder(args)
         services.Configure<DiscordConfiguration>(configuration.GetRequiredSection(DiscordConfiguration.Section));
 
         services.AddDbContextFactory<CardsDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("Default")));
+            options
+                .UseNpgsql(configuration.GetConnectionString("Default"))
+                .UseSnakeCaseNamingConvention()
+        );
 
         services.AddTransient<ILobbiesService, LobbiesService>();
         services.AddTransient<IGamesService, GamesService>();

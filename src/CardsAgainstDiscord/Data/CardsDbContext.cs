@@ -19,8 +19,6 @@ public class CardsDbContext : DbContext
 
     public virtual DbSet<Game> Games { get; protected set; } = null!;
 
-    public virtual DbSet<GameRound> Rounds { get; protected set; } = null!;
-
     public virtual DbSet<PickedCard> Picks { get; protected set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder model)
@@ -34,35 +32,35 @@ public class CardsDbContext : DbContext
             .WithMany(c => c.Players);
 
         model.Entity<Player>()
-            .HasMany(p => p.JudgingRounds)
-            .WithOne(r => r.Judge)
-            .IsRequired()
-            .HasForeignKey(r => r.JudgeId);
-
-        model.Entity<Player>()
             .HasMany(p => p.PickedCards)
             .WithOne(c => c.Player)
             .HasForeignKey(c => c.PlayerId);
 
+        model.Entity<Player>()
+            .HasOne(p => p.SelectedWhiteCard).WithMany()
+            .HasForeignKey(p => p.SelectedWhiteCardId);
+
         model.Entity<Game>()
-            .HasOne(g => g.CurrentRound)
-            .WithOne(r => r.Game)
-            .HasForeignKey<GameRound>(r => r.GameId);
+            .HasOne(g => g.BlackCard).WithMany()
+            .HasForeignKey(g => g.BlackCardId);
+
+        model.Entity<Game>()
+            .HasMany(g => g.UsedBlackCards)
+            .WithMany(c => c.Games);
+
+        model.Entity<Game>()
+            .HasMany(g => g.UsedWhiteCards)
+            .WithMany(g => g.Games);
 
         model.Entity<Game>()
             .HasMany(g => g.Players)
             .WithOne(p => p.Game)
             .HasForeignKey(p => p.GameId);
 
-        model.Entity<GameRound>()
-            .HasOne(r => r.BlackCard)
-            .WithMany(c => c.Rounds)
-            .HasForeignKey(r => r.BlackCardId);
-
-        model.Entity<GameRound>()
-            .HasMany(r => r.PickedCards)
-            .WithOne(p => p.Round)
-            .HasForeignKey(p => p.RoundId);
+        model.Entity<Game>()
+            .HasOne(g => g.Judge)
+            .WithMany(p => p.JudgedGames)
+            .HasForeignKey(g => g.JudgeId);
 
         model.Entity<PickedCard>()
             .HasOne(c => c.WhiteCard)

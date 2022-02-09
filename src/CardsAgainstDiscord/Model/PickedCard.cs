@@ -28,9 +28,9 @@ public class PickedCard
     public int WhiteCardId { get; set; }
 
     /// <summary>
-    ///     Mapped game round that this card was picked in
+    ///     Mapped game that this card was picked in
     /// </summary>
-    public GameRound Round { get; set; } = null!;
+    public Game Game { get; set; } = null!;
 
     /// <summary>
     ///     Mapped player that made this pick
