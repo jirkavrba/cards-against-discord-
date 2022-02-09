@@ -65,4 +65,12 @@ public static class EmbedBuilders
             .WithTitle("All white cards picked!")
             .WithDescription("Now wait for other players to finish.\nYou can dismiss all previous emphemeral message.")
             .Build();
+
+    public static Embed JudgeSelectionEmbed(ulong judge, IEnumerable<string> submissions) =>
+        new EmbedBuilder()
+            .WithColor(DiscordConstants.ColorPrimary)
+            .WithTitle("The judge is choosing this round's winner")
+            .WithDescription(string.Join("\n\n", submissions.Select((text, i) => $"`{i + 1}`: {text}")))
+            .AddField("Judge", judge.AsUserMention())
+            .Build();
 }

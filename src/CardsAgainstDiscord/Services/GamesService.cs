@@ -150,7 +150,8 @@ public class GamesService : IGamesService
         var pickedCards = game.Players.Aggregate(0, (sum, p) => sum += p.PickedCards.Count);
         if (pickedCards == (game.Players.Count - 1) * game.BlackCard?.Picks)
         {
-            // TODO: End the white cards picking phase and send judge selection menu to the game channel
+            await DeleteGameRoundEmbedAsync(gameId);
+            await SendJudgeSelectionEmbedAsync(gameId);
         }
         
         return false;
@@ -301,5 +302,65 @@ public class GamesService : IGamesService
             m.Embed = embed;
             m.Components = components;
         });
+    }
+
+    private async Task DeleteGameRoundEmbedAsync(int gameId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId)
+                   ?? throw new GameNotFoundException();
+            
+        if (game.MessageId == null) return;
+        
+        var guild = _client.GetGuild(game.GuildId);
+        var channel = guild.GetTextChannel(game.ChannelId);
+        
+        await channel.DeleteMessageAsync(game.MessageId.Value);
+
+        game.MessageId = null;
+        context.Games.Update(game);
+
+        await context.SaveChangesAsync();
+    }
+
+    private async Task SendJudgeSelectionEmbedAsync(int gameId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+                       .Include(g => g.BlackCard)
+                       .Include(g => g.Judge)
+                       .Include(g => g.Players)
+                       .ThenInclude(p => p.PickedCards)
+                       .ThenInclude(c => c.WhiteCard)
+                       .FirstOrDefaultAsync(g => g.Id == gameId)
+                   ?? throw new GameNotFoundException();
+            
+        var guild = _client.GetGuild(game.GuildId);
+        var channel = guild.GetTextChannel(game.ChannelId);
+
+        var random = new Random();
+        var submissions = game.Players
+            .Where(p => p.Id != game.JudgeId)
+            .Select(p =>
+            {
+                var id = p.Id;
+                var cards = p.PickedCards.Select(c => c.WhiteCard.Text).ToList();
+                var text = game.BlackCard!.Text.FormatBlackCard(cards);
+
+                return (id, text);
+            })
+            .OrderBy(_ => random.Next())
+            .ToList();
+
+        // TODO: Add components
+        
+        var embed = EmbedBuilders.JudgeSelectionEmbed(game.Judge!.UserId, submissions.Select((s, i) => s.text));
+        var message = await channel.SendMessageAsync(embed: embed);
+
+        game.MessageId = message.Id;
+
+        await context.SaveChangesAsync();
     }
 }
