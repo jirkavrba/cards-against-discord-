@@ -24,4 +24,12 @@ public static class EmbedBuilders
             .AddField("Joined players", string.Join(", ", joinedPlayers.Select(p => p.AsUserMention())))
             .WithCurrentTimestamp()
             .Build();
+
+    public static Embed CancelledLobbyEmbed() =>
+        new EmbedBuilder()
+            .WithThumbnailUrl(DiscordConstants.BannerInactive)
+            .WithTitle("Game cancelled by the owner.")
+            .WithDescription("To create a new game, please use the `/game` command")
+            .WithCurrentTimestamp()
+            .Build();
 }
