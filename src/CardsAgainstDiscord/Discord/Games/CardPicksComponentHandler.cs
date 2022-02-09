@@ -70,12 +70,12 @@ public class CardPicksComponentHandler : IComponentHandler
             return;
         }
 
-        await button.DeleteOriginalResponseAsync();
-        // await button.ModifyOriginalResponseAsync(m =>
-        // {
-        //     m.Embed = EmbedBuilders.AllWhiteCardsPickedEmbed();
-        //     m.Components = new ComponentBuilder().Build();
-        // });
+        await button.ModifyOriginalResponseAsync(m =>
+        {
+            m.Content = "👌";
+            m.Embed = null;
+            m.Components = new ComponentBuilder().Build();
+        });
     }
 
     private async Task SelectWinnerAsync(SocketMessageComponent menu, int gameId)
