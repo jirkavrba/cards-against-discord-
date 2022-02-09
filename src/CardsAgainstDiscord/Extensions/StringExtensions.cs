@@ -17,6 +17,12 @@ public static class StringExtensions
         {
             return pattern.Replace(text, replacement);
         }
+        
+        // If there are no blanks -> eg. question and answer cards, put one on the next line
+        if (!pattern.IsMatch(original))
+        {
+            text = text + " _";
+        }
 
         // Fill-in all card texts (formatted in bold)
         var filled = cards.Aggregate(text, (current, card) => pattern.Replace(current, "**" + card + "**", 1));
