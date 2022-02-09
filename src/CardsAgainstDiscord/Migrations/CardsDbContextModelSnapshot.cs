@@ -94,6 +94,10 @@ namespace CardsAgainstDiscord.Migrations
                         .HasColumnType("numeric(20,0)")
                         .HasColumnName("message_id");
 
+                    b.Property<int?>("SelectedWinnerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("selected_winner_id");
+
                     b.HasKey("Id")
                         .HasName("pk_games");
 

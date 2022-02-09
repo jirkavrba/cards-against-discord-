@@ -35,6 +35,11 @@ public class Game
     ///     ID of the currently judging player
     /// </summary>
     public int? JudgeId { get; set; } = null;
+
+    /// <summary>
+    ///     ID of the winner selected by the judging player
+    /// </summary>
+    public int? SelectedWinnerId { get; set; } = null;
     
     /// <summary>
     ///     Mapped black card selected for this round
@@ -56,7 +61,7 @@ public class Game
     /// </summary>
     public List<PickedCard> PickedCards { get; set; } = new();
 
-    public List<WhiteCard> UsedWhiteCards = new List<WhiteCard>();
+    public List<WhiteCard> UsedWhiteCards { get; set; }= new();
 
-    public List<BlackCard> UsedBlackCards = new List<BlackCard>();
+    public List<BlackCard> UsedBlackCards { get; set; }= new();
 }

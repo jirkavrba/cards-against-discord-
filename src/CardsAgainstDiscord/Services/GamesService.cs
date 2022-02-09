@@ -159,6 +159,20 @@ public class GamesService : IGamesService
 
     public async Task SelectWinnerAsync(int gameId, ulong userId, int playerId)
     {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+                       .Include(g => g.Judge)
+                       .Include(g => g.Players)
+                       .FirstOrDefaultAsync(g => g.Id == gameId)
+                   ?? throw new GameNotFoundException();
+
+        if (game.Judge?.UserId != userId) throw new PlayerIsNotJudgeException();
+
+        game.SelectedWinnerId = playerId;
+
+        context.Games.Update(game);
+        await context.SaveChangesAsync();
     }
 
     public async Task ConfirmSelectedWinnerAsync(int gameId, ulong userId)
@@ -331,7 +345,7 @@ public class GamesService : IGamesService
             .ToList();
 
         var embed = EmbedBuilders.JudgeSelectionEmbed(game.Judge!.UserId, submissions.Select((s, i) => s.text));
-        
+
         var options = submissions.Select((s, i) => new SelectMenuOptionBuilder(
             $"{i + 1}: {string.Join(", ", s.cards)}".SafeSubstring(0, 100),
             s.id.ToString())
