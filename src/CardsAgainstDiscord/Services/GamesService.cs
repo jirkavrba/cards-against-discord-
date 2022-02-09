@@ -247,8 +247,32 @@ public class GamesService : IGamesService
             .Include(g => g.Players).ThenInclude(p => p.PickedCards)
             .Include(g => g.Players).ThenInclude(p => p.WhiteCards)
             .FirstOrDefaultAsync() ?? throw new GameNotFoundException();
-
+        
         var players = game.Players;
+        
+        // If there are joining or leaving players, add or remove them accordingly
+        var joined = game.JoiningPlayers.Select(id => new Player {UserId = id, GameId = gameId});
+        var left = game.Players.Where(p => game.LeavingPlayers.Contains(p.UserId)).ToList();
+        
+        game.Players.AddRange(joined);
+
+        foreach (var leavingPlayer in left)
+        {
+            game.Players.Remove(leavingPlayer);
+        }
+        
+        // Reset the joining / leaving arrays
+        game.JoiningPlayers.Clear();
+        game.LeavingPlayers.Clear();
+        
+        // If there is only 1 or no player left, delete the game
+        if (game.Players.Count <= 1)
+        {
+            await SendDeletedGameEmbedAsync(gameId);
+            await DeleteGameAsync(gameId);
+            return;
+        }
+        
         var previousJudge = players.FindIndex(p => p.Id == game.JudgeId);
         var nextJudge = players[(previousJudge + 1) % players.Count];
 
@@ -444,12 +468,35 @@ public class GamesService : IGamesService
             .ToList();
         
         var embed = EmbedBuilders.WinnerEmbed(text!, winner.UserId, scoreBoard);
+        var components = new ComponentBuilder()
+            .WithButton(ButtonBuilder.CreateSecondaryButton("Join next round", $"join-game:{game.Id}"))
+            .WithButton(ButtonBuilder.CreateSecondaryButton("Leave next round", $"leave-game:{game.Id}"))
+            .Build();
 
         var guild = _client.GetGuild(game.GuildId);
         var channel = guild.GetTextChannel(game.ChannelId);
 
-        await channel.SendMessageAsync(embed: embed);
+        await channel.SendMessageAsync(embed: embed, components: components);
     }
-    
-    
+
+    private async Task SendDeletedGameEmbedAsync(int gameId)
+    {
+       await using var context = await _factory.CreateDbContextAsync();
+
+       var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
+       var guild = _client.GetGuild(game.GuildId);
+       var channel = guild.GetTextChannel(game.ChannelId);
+       
+       await channel.SendMessageAsync(embed: EmbedBuilders.GameDeletedEmbed());
+    }
+
+    private async Task DeleteGameAsync(int gameId)
+    {
+       await using var context = await _factory.CreateDbContextAsync();
+
+       var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
+
+       context.Games.Remove(game);
+       await context.SaveChangesAsync();
+    }
 }

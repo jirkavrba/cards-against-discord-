@@ -37,6 +37,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddTransient<IComponentHandler, LobbiesComponentsHandler>();
         services.AddTransient<IComponentHandler, CardPicksComponentHandler>();
+        services.AddTransient<IComponentHandler, JoiningLeavingComponentHandler>();
 
         return services;
     }

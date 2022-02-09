@@ -19,12 +19,13 @@ public static class EmbedBuilders
     {
         var ids = joinedPlayers.Select(p => p.AsUserMention()).ToList();
         var players = ids.Any() ? string.Join(", ", ids) : "_No player have joined this game yet_";
-        
+
         return new EmbedBuilder()
             .WithColor(DiscordConstants.ColorPrimary)
             .WithThumbnailUrl(DiscordConstants.Banner)
             .WithTitle("Let's play cards against humanity!")
-            .WithDescription("To join or leave this game, click the button below the message.\nYou can leave the game by clicking the button again.")
+            .WithDescription(
+                "To join or leave this game, click the button below the message.\nYou can leave the game by clicking the button again.")
             .AddField("Game owner", ownerId.AsUserMention())
             .AddField("Joined players", players)
             .WithCurrentTimestamp()
@@ -48,7 +49,8 @@ public static class EmbedBuilders
             .AddField("Players", string.Join("\n", players))
             .Build();
 
-    public static Embed WhiteCardSelectionEmbed(string blackCard, List<string> pickedCards, IEnumerable<string> availableCards)
+    public static Embed WhiteCardSelectionEmbed(string blackCard, List<string> pickedCards,
+        IEnumerable<string> availableCards)
     {
         var whiteCards = availableCards.Select(card => $" • {card}");
 
@@ -87,16 +89,24 @@ public static class EmbedBuilders
     public static Embed JoinedGameEmbed() =>
         new EmbedBuilder()
             .WithColor(DiscordConstants.ColorGreen)
+            .WithThumbnailUrl(DiscordConstants.BannerInactive)
             .WithTitle("You're in!")
             .WithDescription("You will join the game next round")
             .WithCurrentTimestamp()
             .Build();
-    
+
     public static Embed LeavedGameAsync() =>
         new EmbedBuilder()
             .WithColor(DiscordConstants.ColorGreen)
-            .WithTitle("You're in!")
-            .WithDescription("You will join the game next round")
+            .WithTitle("Thanks for stopping by!")
+            .WithDescription("You will be removed the game next round")
+            .WithCurrentTimestamp()
+            .Build();
+
+    public static Embed GameDeletedEmbed() =>
+        new EmbedBuilder()
+            .WithTitle("Game ended, because there was only 1 player left")
+            .WithDescription("Thanks for playing!\nTo create a new game use the `/game` slash command.")
             .WithCurrentTimestamp()
             .Build();
 }

@@ -17,10 +17,9 @@ public class JoiningLeavingComponentHandler : IComponentHandler
 
     public async Task HandleInteractionAsync(SocketMessageComponent component)
     {
-        
         var id = component.Data.CustomId ?? string.Empty;
         
-        if (!id.StartsWith("join-game:") || !id.StartsWith("leave-game:")) return;
+        if (!id.StartsWith("join-game:") && !id.StartsWith("leave-game:")) return;
 
         await component.DeferAsync();
 
@@ -31,8 +30,8 @@ public class JoiningLeavingComponentHandler : IComponentHandler
 
         Func<SocketMessageComponent, int, Task> handler = action switch
         {
-            "join" => JoinGameAsync,
-            "leave" => LeaveGameAsync,
+            "join-game" => JoinGameAsync,
+            "leave-game" => LeaveGameAsync,
             _ => throw new ArgumentOutOfRangeException(nameof(component))
         };
 
