@@ -251,7 +251,10 @@ public class GamesService : IGamesService
         var players = game.Players;
         
         // If there are joining or leaving players, add or remove them accordingly
-        var joined = game.JoiningPlayers.Select(id => new Player {UserId = id, GameId = gameId});
+        var joined = game.JoiningPlayers
+            .Where(id => game.Players.All(p => p.UserId != id))
+            .Select(id => new Player {UserId = id, GameId = gameId});
+        
         var left = game.Players.Where(p => game.LeavingPlayers.Contains(p.UserId)).ToList();
         
         game.Players.AddRange(joined);
