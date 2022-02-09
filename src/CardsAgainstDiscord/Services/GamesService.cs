@@ -200,6 +200,9 @@ public class GamesService : IGamesService
         await context.SaveChangesAsync();
         await SendRoundWinnerEmbedAsync(gameId, winner.Id);
         await DeleteGameRoundEmbedAsync(gameId);
+        
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        
         await CreateGameRoundAsync(gameId);
     }
 

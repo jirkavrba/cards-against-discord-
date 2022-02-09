@@ -68,15 +68,15 @@ public static class EmbedBuilders
 
     public static Embed JudgeSelectionEmbed(ulong judge, IEnumerable<string> submissions) =>
         new EmbedBuilder()
-            .WithColor(DiscordConstants.ColorPrimary)
+            .WithColor(DiscordConstants.ColorYellow)
             .WithTitle("The judge is choosing this round's winner")
             .WithDescription(string.Join("\n\n", submissions.Select((text, i) => $"`{i + 1}`: {text}")))
             .AddField("Judge", judge.AsUserMention())
             .Build();
 
-    public static Embed WinnerEmbed(string text, ulong winnerId, List<string> scoreBoard) =>
+    public static Embed WinnerEmbed(string text, ulong winnerId, IEnumerable<string> scoreBoard) =>
         new EmbedBuilder()
-            .WithColor(DiscordConstants.ColorPrimary)
+            .WithColor(DiscordConstants.ColorGreen)
             .WithTitle("The judge has selected a winner for this round!")
             .WithDescription(text)
             .WithCurrentTimestamp()
