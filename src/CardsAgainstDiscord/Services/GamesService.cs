@@ -1,3 +1,4 @@
+using System.Xml.Serialization;
 using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Discord;
 using CardsAgainstDiscord.Exceptions;
@@ -190,13 +191,15 @@ public class GamesService : IGamesService
 
         var winner = game.Players.FirstOrDefault(p => p.Id == game.SelectedWinnerId)
                      ?? throw new PlayerNotFoundException();
-        
+
+        winner.Score++;
         game.SelectedWinnerId = null;
+        
         context.Games.Update(game);
         
         await context.SaveChangesAsync();
+        await SendRoundWinnerEmbedAsync(gameId, winner.Id);
         await DeleteGameRoundEmbedAsync(gameId);
-        // TODO: Send an embed with winner entry and a scoreboard 
         await CreateGameRoundAsync(gameId);
     }
 
@@ -208,7 +211,7 @@ public class GamesService : IGamesService
         var game = await context.Games.Where(g => g.Id == gameId)
             .Include(g => g.UsedBlackCards)
             .Include(g => g.UsedWhiteCards)
-            .Include(g => g.PickedCards).ThenInclude(p => p.WhiteCard)
+            .Include(g => g.Players).ThenInclude(p => p.PickedCards)
             .Include(g => g.Players).ThenInclude(p => p.WhiteCards)
             .FirstOrDefaultAsync() ?? throw new GameNotFoundException();
 
@@ -223,10 +226,11 @@ public class GamesService : IGamesService
         }
 
         // Similarly, if there are submitted white cards from the previous round, add the to the used white cards collection
-        if (game.PickedCards.Any())
+        foreach (var player in game.Players)
         {
-            game.UsedWhiteCards.AddRange(game.PickedCards.Select(p => p.WhiteCard));
-            game.PickedCards.Clear();
+            // TODO: adding to used white cards breaks the transaction for some reason
+            // game.UsedWhiteCards.AddRange(player.PickedCards.Select(p => p.WhiteCard));
+            player.PickedCards.Clear();
         }
 
         // Select a card randomly from all black cards that have not been used yet in this game
@@ -382,5 +386,35 @@ public class GamesService : IGamesService
         game.MessageId = message.Id;
 
         await context.SaveChangesAsync();
+    }
+
+    private async Task SendRoundWinnerEmbedAsync(int gameId, int winnerId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+                       .Include(g => g.BlackCard)
+                       .Include(g => g.Judge)
+                       .Include(g => g.Players)
+                       .ThenInclude(p => p.PickedCards)
+                       .ThenInclude(c => c.WhiteCard)
+                       .FirstOrDefaultAsync(g => g.Id == gameId)
+                   ?? throw new GameNotFoundException();
+        
+        var winner = game.Players.FirstOrDefault(p => p.Id == winnerId) ?? throw new PlayerNotFoundException();
+        var submission = winner.PickedCards.Select(c => c.WhiteCard.Text).ToList();
+        
+        var text = game.BlackCard?.Text.FormatBlackCard(submission);
+        var scoreBoard = game.Players
+            .OrderByDescending(p => p.Score)
+            .Select(p => $"{p.UserId.AsUserMention()} - **{p.Score} points**")
+            .ToList();
+        
+        var embed = EmbedBuilders.WinnerEmbed(text!, winner.UserId, scoreBoard);
+
+        var guild = _client.GetGuild(game.GuildId);
+        var channel = guild.GetTextChannel(game.ChannelId);
+
+        await channel.SendMessageAsync(embed: embed);
     }
 }

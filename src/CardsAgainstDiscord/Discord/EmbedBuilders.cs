@@ -73,4 +73,14 @@ public static class EmbedBuilders
             .WithDescription(string.Join("\n\n", submissions.Select((text, i) => $"`{i + 1}`: {text}")))
             .AddField("Judge", judge.AsUserMention())
             .Build();
+
+    public static Embed WinnerEmbed(string text, ulong winnerId, List<string> scoreBoard) =>
+        new EmbedBuilder()
+            .WithColor(DiscordConstants.ColorPrimary)
+            .WithTitle("The judge has selected a winner for this round!")
+            .WithDescription(text)
+            .WithCurrentTimestamp()
+            .AddField("Submitted by", winnerId.AsUserMention())
+            .AddField("Scores", string.Join("\n", scoreBoard))
+            .Build();
 }

@@ -56,11 +56,6 @@ public class Game
     /// </summary>
     public List<Player> Players { get; set; } = new();
 
-    /// <summary>
-    ///     Mapped cards picked by players in the current round
-    /// </summary>
-    public List<PickedCard> PickedCards { get; set; } = new();
-
     public List<WhiteCard> UsedWhiteCards { get; set; }= new();
 
     public List<BlackCard> UsedBlackCards { get; set; }= new();

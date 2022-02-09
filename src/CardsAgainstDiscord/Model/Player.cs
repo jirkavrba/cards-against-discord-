@@ -20,6 +20,9 @@ public class Player
     /// </summary>
     [Required]
     public int GameId { get; set; }
+    
+    [Required]
+    public int Score { get; set; } = 0;
 
     /// <summary>
     ///     Id of the currently selected white card (so that there can be confirmation button)
