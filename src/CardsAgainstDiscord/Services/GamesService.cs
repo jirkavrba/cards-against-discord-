@@ -126,25 +126,25 @@ public class GamesService : IGamesService
         var player = game.Players.FirstOrDefault(p => p.UserId == userId) ?? throw new PlayerNotFoundException();
         var whiteCardId = player.SelectedWhiteCardId ?? throw new NoSelectedWhiteCardException();
         var card = player.WhiteCards.FirstOrDefault(c => c.Id == whiteCardId) ?? throw new WhiteCardNotFoundException();
-        
+
         // If the player has chosen all the white cards already
         if (player.PickedCards.Count >= game.BlackCard?.Picks) throw new AlreadyPickedAllWhiteCardsException();
-        
+
         player.WhiteCards.Remove(card);
         player.PickedCards.Add(new PickedCard
         {
             PlayerId = player.Id,
             WhiteCardId = whiteCardId
         });
-        
+
         context.Players.Update(player);
-        
+
         await context.SaveChangesAsync();
         await UpdateGameRoundEmbedAsync(gameId);
-        
+
         // If the player needs to pick more white card(s), early return true
         if (player.PickedCards.Count < game.BlackCard?.Picks) return true;
-        
+
         // Check, whether all players have submitted all picks
         // There has to be (player - 1 judge) * black picks cards picked
         var pickedCards = game.Players.Aggregate(0, (sum, p) => sum += p.PickedCards.Count);
@@ -153,7 +153,7 @@ public class GamesService : IGamesService
             await DeleteGameRoundEmbedAsync(gameId);
             await SendJudgeSelectionEmbedAsync(gameId);
         }
-        
+
         return false;
     }
 
@@ -310,12 +310,12 @@ public class GamesService : IGamesService
 
         var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId)
                    ?? throw new GameNotFoundException();
-            
+
         if (game.MessageId == null) return;
-        
+
         var guild = _client.GetGuild(game.GuildId);
         var channel = guild.GetTextChannel(game.ChannelId);
-        
+
         await channel.DeleteMessageAsync(game.MessageId.Value);
 
         game.MessageId = null;
@@ -336,7 +336,7 @@ public class GamesService : IGamesService
                        .ThenInclude(c => c.WhiteCard)
                        .FirstOrDefaultAsync(g => g.Id == gameId)
                    ?? throw new GameNotFoundException();
-            
+
         var guild = _client.GetGuild(game.GuildId);
         var channel = guild.GetTextChannel(game.ChannelId);
 
@@ -349,15 +349,24 @@ public class GamesService : IGamesService
                 var cards = p.PickedCards.Select(c => c.WhiteCard.Text).ToList();
                 var text = game.BlackCard!.Text.FormatBlackCard(cards);
 
-                return (id, text);
+                return (id, cards, text);
             })
             .OrderBy(_ => random.Next())
             .ToList();
 
-        // TODO: Add components
-        
         var embed = EmbedBuilders.JudgeSelectionEmbed(game.Judge!.UserId, submissions.Select((s, i) => s.text));
-        var message = await channel.SendMessageAsync(embed: embed);
+        
+        var options = submissions.Select((s, i) => new SelectMenuOptionBuilder(
+            $"{i + 1}: {string.Join(", ", s.cards)}".SafeSubstring(0, 100),
+            s.id.ToString())
+        ).ToList();
+
+        var components = new ComponentBuilder()
+            .WithSelectMenu($"game:judge:{gameId}", options, "Select the winner entry")
+            .WithButton("Confirm choice", $"game:judge-confirm:{gameId}")
+            .Build();
+
+        var message = await channel.SendMessageAsync(embed: embed, components: components);
 
         game.MessageId = message.Id;
 
