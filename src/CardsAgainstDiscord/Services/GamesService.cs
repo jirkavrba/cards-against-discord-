@@ -206,6 +206,36 @@ public class GamesService : IGamesService
         await CreateGameRoundAsync(gameId);
     }
 
+    public async Task JoinGameAsync(int gameId, ulong userId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId)
+            ?? throw new GameNotFoundException();
+
+        game.JoiningPlayers.Add(userId);
+        game.LeavingPlayers.Remove(userId);
+        
+        context.Games.Update(game);
+
+        await context.SaveChangesAsync();
+    }
+
+    public async Task LeaveGameAsync(int gameId, ulong userId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId)
+            ?? throw new GameNotFoundException();
+
+        game.JoiningPlayers.Remove(userId);
+        game.LeavingPlayers.Add(userId);
+        
+        context.Games.Update(game);
+
+        await context.SaveChangesAsync();
+    }
+
     private async Task CreateGameRoundAsync(int gameId)
     {
         await using var context = await _factory.CreateDbContextAsync();
@@ -420,4 +450,6 @@ public class GamesService : IGamesService
 
         await channel.SendMessageAsync(embed: embed);
     }
+    
+    
 }

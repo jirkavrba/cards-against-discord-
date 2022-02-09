@@ -19,4 +19,8 @@ public interface IGamesService
     public Task SelectWinnerAsync(int gameId, ulong userId, int playerId);
     
     public Task ConfirmSelectedWinnerAsync(int gameId, ulong userId);
+    
+    public Task JoinGameAsync(int gameId, ulong userId);
+    
+    public Task LeaveGameAsync(int gameId, ulong userId);
 }

@@ -83,4 +83,20 @@ public static class EmbedBuilders
             .AddField("Submitted by", "🏆 " + winnerId.AsUserMention())
             .AddField("Scores", string.Join("\n", scoreBoard))
             .Build();
+
+    public static Embed JoinedGameEmbed() =>
+        new EmbedBuilder()
+            .WithColor(DiscordConstants.ColorGreen)
+            .WithTitle("You're in!")
+            .WithDescription("You will join the game next round")
+            .WithCurrentTimestamp()
+            .Build();
+    
+    public static Embed LeavedGameAsync() =>
+        new EmbedBuilder()
+            .WithColor(DiscordConstants.ColorGreen)
+            .WithTitle("You're in!")
+            .WithDescription("You will join the game next round")
+            .WithCurrentTimestamp()
+            .Build();
 }
