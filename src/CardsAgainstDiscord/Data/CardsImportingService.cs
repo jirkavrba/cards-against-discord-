@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using CardsAgainstDiscord.Model;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,8 +27,8 @@ public class CardsImportingService : BackgroundService
 
         var source = await File.ReadAllTextAsync(@"Data/cards.json", stoppingToken);
         var cards = JsonSerializer.Deserialize<CardsAgainstJsonSource>(source)!;
-
-        var white = cards.WhiteCards.Select(s => new WhiteCard {Text = s});
+        
+        var white = cards.WhiteCards.Select(s => new WhiteCard {Text = new Regex("\\.$").Replace(s, "")});
         var black = cards.BlackCards.Select(s => new BlackCard {Text = s.Text, Picks = s.Picks});
 
         await context.WhiteCards.AddRangeAsync(white, stoppingToken);
