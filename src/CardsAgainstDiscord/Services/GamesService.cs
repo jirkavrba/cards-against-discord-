@@ -43,7 +43,7 @@ public class GamesService : IGamesService
         context.Lobbies.Remove(lobby);
 
         await context.SaveChangesAsync();
-        await CreateGameRound(game);
+        await CreateGameRoundAsync(game.Id);
 
         return game;
     }
@@ -152,20 +152,6 @@ public class GamesService : IGamesService
         return false;
     }
 
-    public async Task CreateGameRound(int gameId)
-    {
-        // await using var context = await _factory.CreateDbContextAsync();
-        //
-        // var game = await context.Games
-        //                .Include(g => g.CurrentRound)
-        //                .Include(g => g.Players)
-        //                .ThenInclude(p => p.WhiteCards)
-        //                .FirstOrDefaultAsync(g => g.Id == gameId)
-        //            ?? throw new GameNotFoundException();
-        //
-        // await CreateGameRound(game);
-    }
-
     public async Task<(Player, string)> SubmitWinnerAsync(int gameId, ulong playerId, int winnerId)
     {
         // await using var context = await _factory.CreateDbContextAsync();
@@ -198,127 +184,119 @@ public class GamesService : IGamesService
         return (null!, null!);
     }
 
-    private async Task CreateGameRound(Game game)
+    public async Task CreateGameRoundAsync(int gameId)
     {
-        // var context = await _factory.CreateDbContextAsync();
-        //
-        // // Move the judge role to the next player
-        // var players = game.Players;
-        // var previousJudge = players.FindIndex(p => p.Id == game.CurrentRound?.JudgeId);
-        // var nextJudge = players[(previousJudge + 1) % players.Count];
-        //
-        // // Select a card randomly from all black cards that have not been used yet in this game
-        // var random = new Random();
-        // var selectedBlackCard = context.BlackCards.Where(c =>
-        //         !context.Rounds.Where(r => r.GameId == game.Id)
-        //             .Select(r => r.BlackCardId)
-        //             .Contains(c.Id)
-        //     )
-        //     .ToList() // Needed in order to change the context to local evaluation
-        //     .OrderBy(_ => random.Next())
-        //     .First();
-        //
-        // var guild = _client.GetGuild(game.GuildId);
-        // var channel = guild.GetTextChannel(game.ChannelId);
-        // var message = await channel.SendMessageAsync("Starting a new round...");
-        //
-        // game.CurrentRound = new GameRound
-        // {
-        //     GameId = game.Id,
-        //     MessageId = message.Id,
-        //     Judge = nextJudge,
-        //     BlackCard = selectedBlackCard
-        // };
-        //
-        // // Add missing white cards to each player from pool of white cards that have not been used yet
-        // var availableWhiteCards = context.WhiteCards.Where(c =>
-        //         !context.Rounds.Where(r => r.GameId == game.Id)
-        //             .Include(r => r.PickedCards)
-        //             .SelectMany(r => r.PickedCards.Select(p => p.WhiteCardId))
-        //             .Contains(c.Id)
-        //     )
-        //     .ToList() // Needed in order to change the context to local evaluation
-        //     .OrderBy(_ => random.Next())
-        //     .ToList();
-        //
-        // players.Aggregate(0, (cardsTaken, player) =>
-        // {
-        //     var missingCards = HandSize - player.WhiteCards.Count;
-        //
-        //     player.WhiteCards.AddRange(
-        //         availableWhiteCards
-        //             .Skip(cardsTaken)
-        //             .Take(missingCards)
-        //     );
-        //
-        //     return cardsTaken + missingCards;
-        // });
-        //
-        // context.Games.Update(game);
-        // context.Players.UpdateRange(players);
-        //
-        // // Context has to be disposed manually so it can be passed to LINQ lambdas
-        // await context.SaveChangesAsync();
-        // await context.DisposeAsync();
-        // await UpdateGameRoundEmbedAsync(game);
+        await using var context = await _factory.CreateDbContextAsync();
+
+        // Move the judge role to the next player
+        var game = await context.Games.Where(g => g.Id == gameId)
+            .Include(g => g.UsedBlackCards)
+            .Include(g => g.UsedWhiteCards)
+            .Include(g => g.PickedCards).ThenInclude(p => p.WhiteCard)
+            .Include(g => g.Players).ThenInclude(p => p.WhiteCards)
+            .FirstOrDefaultAsync() ?? throw new GameNotFoundException();
+
+        var players = game.Players;
+        var previousJudge = players.FindIndex(p => p.Id == game.JudgeId);
+        var nextJudge = players[(previousJudge + 1) % players.Count];
+
+        // If there is a black card from the previous round, add it to the used black cards collection
+        if (game.BlackCard != null)
+        {
+            game.UsedBlackCards.Add(game.BlackCard);
+        }
+
+        // Similarly, if there are submitted white cards from the previous round, add the to the used white cards collection
+        if (game.PickedCards.Any())
+        {
+            game.UsedWhiteCards.AddRange(game.PickedCards.Select(p => p.WhiteCard));
+            game.PickedCards.Clear();
+        }
+
+        // Select a card randomly from all black cards that have not been used yet in this game
+        var random = new Random();
+        var selectedBlackCard = context.BlackCards.Where(c => !game.UsedBlackCards.Contains(c))
+            .ToList() // Needed in order to change the context to local evaluation
+            .OrderBy(_ => random.Next())
+            .First();
+
+        var guild = _client.GetGuild(game.GuildId);
+        var channel = guild.GetTextChannel(game.ChannelId);
+        var message = await channel.SendMessageAsync("Starting a new round...");
+
+        game.JudgeId = nextJudge.Id;
+        game.BlackCardId = selectedBlackCard.Id;
+        game.MessageId = message.Id;
+
+        // Add missing white cards to each player from pool of white cards that have not been used yet
+        var availableWhiteCards = context.WhiteCards.Where(c => !game.UsedWhiteCards.Contains(c))
+            .ToList() // Needed in order to change the context to local evaluation
+            .OrderBy(_ => random.Next())
+            .ToList();
+
+        // TODO: Maybe write this in a cleaner, more functional approach?
+        var takenCards = 0;
+
+        foreach (var player in game.Players)
+        {
+            var missingCards = HandSize - player.WhiteCards.Count;
+
+            player.WhiteCards.AddRange(availableWhiteCards.Skip(takenCards).Take(missingCards));
+
+            takenCards += missingCards;
+        }
+
+        context.Games.Update(game);
+
+        await context.SaveChangesAsync();
+        await UpdateGameRoundEmbedAsync(game);
     }
 
     private async Task UpdateGameRoundEmbedAsync(int gameId)
     {
-        // await using var context = await _factory.CreateDbContextAsync();
-        //
-        // var game = await context.Games
-        //     .Include(g => g.Players)
-        //     .Include(g => g.CurrentRound).ThenInclude(r => r!.PickedCards)
-        //     .Include(g => g.CurrentRound).ThenInclude(r => r!.BlackCard)
-        //     .Include(g => g.CurrentRound).ThenInclude(r => r!.Judge)
-        //     .Where(g => g.Id == gameId)
-        //     .FirstOrDefaultAsync() ?? throw new GameNotFoundException();
-        //
-        // await UpdateGameRoundEmbedAsync(game);
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+            .Include(g => g.Judge)
+            .Include(g => g.BlackCard)
+            .Include(g => g.Players).ThenInclude(p => p.PickedCards)
+            .FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
+
+        await UpdateGameRoundEmbedAsync(game);
     }
 
     private async Task UpdateGameRoundEmbedAsync(Game game)
     {
-        // var round = game.CurrentRound ?? throw new ArgumentNullException(nameof(game.CurrentRound));
-        //
-        // var guild = _client.GetGuild(game.GuildId);
-        // var channel = guild.GetTextChannel(game.ChannelId);
-        //
-        // if (await channel.GetMessageAsync(round.MessageId) is not IUserMessage message) return;
-        //
-        // var players = game.Players
-        //     .Where(p => p.Id != round.JudgeId)
-        //     .Select(p =>
-        //     {
-        //         var mention = $"<@!{p.UserId}>";
-        //
-        //         return round.PickedCards.Count(c => c.PlayerId == p.Id) < round.BlackCard.Picks
-        //             ? $"⏳ {mention} - Choosing white cards"
-        //             : $"✅ {mention} - Done";
-        //     })
-        //     .OrderBy(p => p);
-        //
-        // var embed = new EmbedBuilder()
-        //     .WithTitle("Waiting for players to pick white cards")
-        //     .WithDescription("To pick white card(s), click the button below this message")
-        //     .WithColor(DiscordConstants.ColorPrimary)
-        //     .WithThumbnailUrl(DiscordConstants.Banner)
-        //     .WithCurrentTimestamp()
-        //     .AddField("Judge", $"<@!{round.Judge.UserId}>")
-        //     .AddField("Players", string.Join("\n", players))
-        //     .AddField("Selected black card", round.BlackCard.Text.FormatBlackCard());
-        //
-        // var components = new ComponentBuilder().WithButton(
-        //     ButtonBuilder.CreatePrimaryButton("🃏 Pick your card(s)", $"game:pick:{game.Id}")
-        // );
-        //
-        // await message.ModifyAsync(m =>
-        // {
-        //     m.Content = "";
-        //     m.Embed = embed.Build();
-        //     m.Components = components.Build();
-        // });
+        var guild = _client.GetGuild(game.GuildId);
+        var channel = guild.GetTextChannel(game.ChannelId);
+
+        if (await channel.GetMessageAsync(game.MessageId ?? 0) is not IUserMessage message) return;
+
+        var text = game.BlackCard!.FormattedText;
+        var picks = game.BlackCard.Picks;
+        var judge = game.Judge!.UserId;
+        var players = game.Players.Where(p => p.Id != game.JudgeId)
+            .Select(p => p.PickedCards.Count < picks
+                ? $"⏳ {p.UserId.AsUserMention()}"
+                : $"✅ {p.UserId.AsUserMention()}"
+            )
+            .OrderBy(p => p)
+            .ToList();
+
+        var embed = EmbedBuilders.GameRoundEmbed(text, judge, players);
+        var components = new ComponentBuilder().WithButton(
+            ButtonBuilder.CreatePrimaryButton(
+                "Pick your card" + (picks > 1 ? "s" : string.Empty),
+                $"game:pick:{game.Id}"
+            )
+        ).Build();
+
+        await message.ModifyAsync(m =>
+        {
+            m.Content = "";
+            m.Embed = embed;
+            m.Components = components;
+        });
     }
 
     private async Task SendJudgeSelectionEmbedAsync(int gameId)

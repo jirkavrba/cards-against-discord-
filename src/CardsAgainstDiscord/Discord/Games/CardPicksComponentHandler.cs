@@ -73,7 +73,7 @@ public class CardPicksComponentHandler : IComponentHandler
         var embed = new EmbedBuilder()
             .WithColor(DiscordConstants.ColorPrimary)
             .WithTitle("Pick a white card to fill in the highlighted blank")
-            .WithDescription(blackCard.Text.FormatBlackCard(picks.Select(p => p.Text).ToList()))
+            .WithDescription(blackCard.FormattedText)
             .AddField("Available white cards:", texts)
             .Build();
 
@@ -142,6 +142,6 @@ public class CardPicksComponentHandler : IComponentHandler
         await component.Message.DeleteAsync();
         await component.FollowupAsync(embed: embed);
 
-        await _service.CreateGameRound(gameId);
+        await _service.CreateGameRoundAsync(gameId);
     }
 }

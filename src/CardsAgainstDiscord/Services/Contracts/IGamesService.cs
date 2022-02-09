@@ -6,7 +6,7 @@ public interface IGamesService
 {
     public Task<Game> CreateGameAsync(Lobby lobby);
 
-    public Task CreateGameRound(int gameId);
+    public Task CreateGameRoundAsync(int gameId);
 
     public Task<BlackCard> GetCurrentBlackCardAsync(int gameId);
 

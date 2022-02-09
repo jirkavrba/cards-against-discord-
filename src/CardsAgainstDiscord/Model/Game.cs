@@ -56,7 +56,7 @@ public class Game
     /// </summary>
     public List<PickedCard> PickedCards { get; set; } = new();
 
-    public IEnumerable<WhiteCard> UsedWhiteCards = new List<WhiteCard>();
+    public List<WhiteCard> UsedWhiteCards = new List<WhiteCard>();
 
-    public IEnumerable<BlackCard> UsedBlackCards = new List<BlackCard>();
+    public List<BlackCard> UsedBlackCards = new List<BlackCard>();
 }

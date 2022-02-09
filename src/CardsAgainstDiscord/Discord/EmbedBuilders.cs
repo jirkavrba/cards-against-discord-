@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CardsAgainstDiscord.Extensions;
 using Discord;
 
@@ -36,5 +37,14 @@ public static class EmbedBuilders
             .WithTitle("Game cancelled by the owner.")
             .WithDescription("To create a new game, please use the `/game` command")
             .WithCurrentTimestamp()
+            .Build();
+
+    public static Embed GameRoundEmbed(string blackCard, ulong judge, IEnumerable<string> players) =>
+        new EmbedBuilder()
+            .WithColor(DiscordConstants.ColorPrimary)
+            .WithTitle(blackCard)
+            .WithDescription("To pick your card, click the button below this message.")
+            .AddField("Judge", judge.AsUserMention())
+            .AddField("Players", string.Join("\n", players))
             .Build();
 }

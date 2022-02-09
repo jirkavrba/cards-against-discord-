@@ -39,15 +39,15 @@ public class Player
     /// <summary>
     ///     Mapped games where the player is the judge
     /// </summary>
-    public IEnumerable<Game> JudgedGames { get; set; } = new List<Game>();
+    public List<Game> JudgedGames { get; set; } = new();
 
     /// <summary>
     ///     Mapped list of picked white cards (in all rounds)
     /// </summary>
-    public IEnumerable<PickedCard> PickedCards { get; set; } = new List<PickedCard>();
+    public List<PickedCard> PickedCards { get; set; } = new();
 
     /// <summary>
     ///     Mapped white cards that this player has in his hand
     /// </summary>
-    public IEnumerable<WhiteCard> WhiteCards { get; set; } = new List<WhiteCard>();
+    public List<WhiteCard> WhiteCards { get; set; } = new();
 }

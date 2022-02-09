@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using CardsAgainstDiscord.Extensions;
 
 namespace CardsAgainstDiscord.Model;
 
@@ -14,6 +15,11 @@ public class BlackCard
     /// </summary>
     [Required]
     public string Text { get; set; } = null!;
+    
+    /// <summary>
+    ///     Text formatted for better display in Discord embeds
+    /// </summary>
+    public string FormattedText => Text.FormatBlackCard();
 
     /// <summary>
     ///     Number of white cards required to complete this black card
