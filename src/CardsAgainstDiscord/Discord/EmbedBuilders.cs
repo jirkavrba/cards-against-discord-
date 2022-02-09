@@ -14,16 +14,21 @@ public static class EmbedBuilders
             .WithCurrentTimestamp();
     }
 
-    public static Embed LobbyEmbed(ulong ownerId, IEnumerable<ulong> joinedPlayers) =>
-        new EmbedBuilder()
+    public static Embed LobbyEmbed(ulong ownerId, IEnumerable<ulong> joinedPlayers)
+    {
+        var ids = joinedPlayers.Select(p => p.AsUserMention()).ToList();
+        var players = ids.Any() ? string.Join(", ", ids) : "_No player have joined this game yet_";
+        
+        return new EmbedBuilder()
             .WithColor(DiscordConstants.ColorPrimary)
             .WithThumbnailUrl(DiscordConstants.Banner)
             .WithTitle("Let's play cards against humanity!")
-            .WithDescription("To join or leave the game, use the button below.")
+            .WithDescription("To join or leave this game, click the button below the message.\nYou can leave the game by clicking the button again.")
             .AddField("Game owner", ownerId.AsUserMention())
-            .AddField("Joined players", string.Join(", ", joinedPlayers.Select(p => p.AsUserMention())))
+            .AddField("Joined players", players)
             .WithCurrentTimestamp()
             .Build();
+    }
 
     public static Embed CancelledLobbyEmbed() =>
         new EmbedBuilder()

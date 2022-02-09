@@ -123,28 +123,12 @@ public class LobbiesService : ILobbiesService
             {
                 m.Content = string.Empty;
                 m.Components = new ComponentBuilder().Build();
-                m.Embed = LobbyCancelledEmbed;
+                m.Embed = EmbedBuilders.CancelledLobbyEmbed();
             });
             return;
         }
 
-        var players = lobby.JoinedPlayers.Count == 0
-            ? "_No players joined this lobby yet_"
-            : string.Join(", ", lobby.JoinedPlayers.Select(id => $"<@!{id}>"));
-
-        var embed = new EmbedBuilder
-            {
-                Color = DiscordConstants.ColorPrimary,
-                Title = "Let's play cards against humanity!",
-                Description =
-                    "To join or leave this game, click the button below the message.\nYou can leave the game by clicking the button again.",
-                ThumbnailUrl = DiscordConstants.Banner
-            }
-            .AddField("Game owner", $"<@!{lobby.OwnerId}>")
-            .AddField("Joined players", players)
-            .WithCurrentTimestamp()
-            .Build();
-
+        var embed = EmbedBuilders.LobbyEmbed(lobby.OwnerId, lobby.JoinedPlayers);
         var components = new ComponentBuilder()
             .WithButton(ButtonBuilder.CreatePrimaryButton("👋 Join / leave", $"lobby:join:{lobby.Id}"))
             .WithButton(ButtonBuilder.CreateSecondaryButton("😎 Start", $"lobby:start:{lobby.Id}"))
