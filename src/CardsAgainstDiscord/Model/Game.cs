@@ -40,7 +40,7 @@ public class Game
     ///     ID of the winner selected by the judging player
     /// </summary>
     public int? SelectedWinnerId { get; set; } = null;
-    
+
     /// <summary>
     ///     Mapped black card selected for this round
     /// </summary>
@@ -56,7 +56,17 @@ public class Game
     /// </summary>
     public List<Player> Players { get; set; } = new();
 
-    public List<WhiteCard> UsedWhiteCards { get; set; }= new();
+    /// <summary>
+    ///     List of players that want to join the game before next round
+    /// </summary>
+    public List<ulong> JoiningPlayers { get; set; } = new();
 
-    public List<BlackCard> UsedBlackCards { get; set; }= new();
+    /// <summary>
+    ///     List of players that want to leave the game before next round
+    /// </summary>
+    public List<ulong> LeavingPlayers { get; set; } = new();
+
+    public List<WhiteCard> UsedWhiteCards { get; set; } = new();
+
+    public List<BlackCard> UsedBlackCards { get; set; } = new();
 }
