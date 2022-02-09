@@ -3,7 +3,6 @@ using CardsAgainstDiscord.Exceptions;
 using CardsAgainstDiscord.Extensions;
 using CardsAgainstDiscord.Services.Contracts;
 using Discord;
-using Discord.Rest;
 using Discord.WebSocket;
 
 namespace CardsAgainstDiscord.Discord.Games;

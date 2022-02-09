@@ -177,6 +177,27 @@ public class GamesService : IGamesService
 
     public async Task ConfirmSelectedWinnerAsync(int gameId, ulong userId)
     {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+                       .Include(g => g.Judge)
+                       .Include(g => g.Players)
+                       .FirstOrDefaultAsync(g => g.Id == gameId)
+                   ?? throw new GameNotFoundException();
+
+        if (game.Judge?.UserId != userId) throw new PlayerIsNotJudgeException();
+        if (game.SelectedWinnerId == null) throw new NoSelectedSubmissionException();
+
+        var winner = game.Players.FirstOrDefault(p => p.Id == game.SelectedWinnerId)
+                     ?? throw new PlayerNotFoundException();
+        
+        game.SelectedWinnerId = null;
+        context.Games.Update(game);
+        
+        await context.SaveChangesAsync();
+        await DeleteGameRoundEmbedAsync(gameId);
+        // TODO: Send an embed with winner entry and a scoreboard 
+        await CreateGameRoundAsync(gameId);
     }
 
     private async Task CreateGameRoundAsync(int gameId)
