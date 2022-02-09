@@ -157,39 +157,15 @@ public class GamesService : IGamesService
         return false;
     }
 
-    public async Task<(Player, string)> SubmitWinnerAsync(int gameId, ulong playerId, int winnerId)
+    public async Task SelectWinnerAsync(int gameId, ulong userId, int playerId)
     {
-        // await using var context = await _factory.CreateDbContextAsync();
-        //
-        // var game = await context.Games
-        //     .Include(g => g.Players)
-        //     .Include(g => g.CurrentRound).ThenInclude(p => p.Judge)
-        //     .Include(g => g.CurrentRound).ThenInclude(p => p.BlackCard)
-        //     .Include(g => g.CurrentRound)
-        //     .ThenInclude(p => p.PickedCards)
-        //     .ThenInclude(c => c.WhiteCard)
-        //     .FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
-        //
-        // if (playerId != game.CurrentRound.Judge.UserId) throw new PlayerIsNotJudgeException();
-        //
-        // var winner = game.Players.FirstOrDefault(p => p.Id == winnerId)
-        //              ?? throw new PlayerNotFoundException();
-        //
-        // var cards = game.CurrentRound.PickedCards.Where(p => p.PlayerId == winnerId)
-        //     .Select(c => c.WhiteCard.Text)
-        //     .ToList();
-        //
-        // var submission = game.CurrentRound.BlackCard.Text.FormatBlackCard(cards);
-        //
-        // // TODO: Update score
-        //
-        // await CreateGameRound(game);
-        //
-        // return (winner, submission);
-        return (null!, null!);
     }
 
-    public async Task CreateGameRoundAsync(int gameId)
+    public async Task ConfirmSelectedWinnerAsync(int gameId, ulong userId)
+    {
+    }
+
+    private async Task CreateGameRoundAsync(int gameId)
     {
         await using var context = await _factory.CreateDbContextAsync();
 
@@ -363,7 +339,7 @@ public class GamesService : IGamesService
 
         var components = new ComponentBuilder()
             .WithSelectMenu($"game:judge:{gameId}", options, "Select the winner entry")
-            .WithButton("Confirm choice", $"game:judge-confirm:{gameId}")
+            .WithButton("Confirm choice", $"game:confirm-judge:{gameId}")
             .Build();
 
         var message = await channel.SendMessageAsync(embed: embed, components: components);

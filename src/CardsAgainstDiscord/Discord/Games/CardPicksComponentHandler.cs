@@ -32,9 +32,10 @@ public class CardPicksComponentHandler : IComponentHandler
         Func<SocketMessageComponent, int, Task> handler = (component.Data.Type, action) switch
         {
             (ComponentType.Button, "pick") => ShowCardsSelectionAsync,
-            (ComponentType.Button, "confirm-pick") => ConfirmSelectedCardAsync,
             (ComponentType.SelectMenu, "pick") => SelectCardAsync,
-            // (ComponentType.SelectMenu, "judge") => SelectWinner,
+            (ComponentType.Button, "confirm-pick") => ConfirmSelectedCardAsync,
+            (ComponentType.SelectMenu, "judge") => SelectWinnerAsync,
+            (ComponentType.Button, "confirm-judge") => ConfirmSelectedWinnerAsync,
             _ => throw new ArgumentOutOfRangeException(nameof(component))
         };
 
@@ -51,30 +52,45 @@ public class CardPicksComponentHandler : IComponentHandler
         }
     }
 
-    private async Task SelectCardAsync(SocketMessageComponent component, int gameId)
+    private async Task SelectCardAsync(SocketMessageComponent menu, int gameId)
     {
-        var whiteCardId = int.Parse(component.Data.Values.First());
-        var userId = component.User.Id;
+        var whiteCardId = int.Parse(menu.Data.Values.First());
+        var userId = menu.User.Id;
 
         await _service.SelectWhiteCardAsync(gameId, userId, whiteCardId);
     }
 
-    private async Task ConfirmSelectedCardAsync(SocketMessageComponent component, int gameId)
+    private async Task ConfirmSelectedCardAsync(SocketMessageComponent button, int gameId)
     {
-        var userId = component.User.Id;
+        var userId = button.User.Id;
         var shouldPickAnother = await _service.ConfirmSelectedCardAsync(gameId, userId);
 
         if (shouldPickAnother)
         {
-            await ShowCardsSelectionAsync(component, gameId, true);
+            await ShowCardsSelectionAsync(button, gameId, true);
             return;
         }
 
-        await component.ModifyOriginalResponseAsync(m =>
+        await button.ModifyOriginalResponseAsync(m =>
         {
             m.Embed = EmbedBuilders.AllWhiteCardsPickedEmbed();
             m.Components = new ComponentBuilder().Build();
         });
+    }
+
+    private async Task SelectWinnerAsync(SocketMessageComponent menu, int gameId)
+    {
+        var playerId = int.Parse(menu.Data.Values.First());
+        var userId = menu.User.Id;
+
+        await _service.SelectWinnerAsync(gameId, userId, playerId);
+    }
+
+    private async Task ConfirmSelectedWinnerAsync(SocketMessageComponent button, int gameId)
+    {
+        var userId = button.User.Id;
+
+        await _service.ConfirmSelectedWinnerAsync(gameId, userId);
     }
 
     private async Task ShowCardsSelectionAsync(SocketInteraction button, int gameId) =>

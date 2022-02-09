@@ -16,5 +16,7 @@ public interface IGamesService
     
     public Task<bool> ConfirmSelectedCardAsync(int gameId, ulong userId);
 
-    public Task<(Player, string)> SubmitWinnerAsync(int gameId, ulong playerId, int winnerId);
+    public Task SelectWinnerAsync(int gameId, ulong userId, int playerId);
+    
+    public Task ConfirmSelectedWinnerAsync(int gameId, ulong userId);
 }
