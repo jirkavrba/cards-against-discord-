@@ -10,7 +10,10 @@ var host = Host.CreateDefaultBuilder(args)
     {
         builder.AddEnvironmentVariables();
 
-        if (host.HostingEnvironment.IsDevelopment()) builder.AddUserSecrets<Program>();
+        if (host.HostingEnvironment.IsDevelopment())
+        {
+            builder.AddUserSecrets<Program>(optional: true);
+        }
     })
     .ConfigureServices((host, services) =>
     {
