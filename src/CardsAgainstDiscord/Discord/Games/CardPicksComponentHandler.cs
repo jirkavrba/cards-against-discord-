@@ -3,6 +3,7 @@ using CardsAgainstDiscord.Exceptions;
 using CardsAgainstDiscord.Extensions;
 using CardsAgainstDiscord.Services.Contracts;
 using Discord;
+using Discord.Rest;
 using Discord.WebSocket;
 
 namespace CardsAgainstDiscord.Discord.Games;
@@ -30,9 +31,10 @@ public class CardPicksComponentHandler : IComponentHandler
 
         Func<SocketMessageComponent, int, Task> handler = (component.Data.Type, action) switch
         {
-            (ComponentType.Button, "pick") => ShowCardsSelection,
-            (ComponentType.SelectMenu, "pick") => PickCard,
-            (ComponentType.SelectMenu, "judge") => SelectWinner,
+            (ComponentType.Button, "pick") => ShowCardsSelectionAsync,
+            (ComponentType.Button, "confirm-pick") => ConfirmSelectedCardAsync,
+            (ComponentType.SelectMenu, "pick") => SelectCardAsync,
+            // (ComponentType.SelectMenu, "judge") => SelectWinner,
             _ => throw new ArgumentOutOfRangeException(nameof(component))
         };
 
@@ -49,99 +51,68 @@ public class CardPicksComponentHandler : IComponentHandler
         }
     }
 
-    private async Task ShowCardsSelection(SocketMessageComponent component, int gameId)
+    private async Task SelectCardAsync(SocketMessageComponent component, int gameId)
     {
-        await ShowCardsSelection(component, gameId, false);
+        var whiteCardId = int.Parse(component.Data.Values.First());
+        var userId = component.User.Id;
+
+        await _service.SelectWhiteCardAsync(gameId, userId, whiteCardId);
     }
 
-    private async Task ShowCardsSelection(SocketMessageComponent component, int gameId, bool repeated)
+    private async Task ConfirmSelectedCardAsync(SocketMessageComponent component, int gameId)
     {
-        var blackCard = await _service.GetCurrentBlackCardAsync(gameId);
-        var whiteCards = await _service.GetAvailableWhiteCardsAsync(gameId, component.User.Id);
-        var picks = await _service.GetPickedWhiteCardsAsync(gameId, component.User.Id);
+        var userId = component.User.Id;
+        var shouldPickAnother = await _service.ConfirmSelectedCardAsync(gameId, userId);
 
-        var texts = string.Join("\n", whiteCards.Select(c => $" • {c.Text}").ToList());
-        var options = whiteCards.Select(c => new SelectMenuOptionBuilder
-            {
-                // I hope there is not a white card with text over 200 chars...
-                Label = c.Text.SafeSubstring(0, 100),
-                Description = c.Text.Length >= 100 ? c.Text.SafeSubstring(100, 200) : null,
-                Value = c.Id.ToString()
-            })
-            .ToList();
-
-        var embed = new EmbedBuilder()
-            .WithColor(DiscordConstants.ColorPrimary)
-            .WithTitle("Pick a white card to fill in the highlighted blank")
-            .WithDescription(blackCard.FormattedText)
-            .AddField("Available white cards:", texts)
-            .Build();
-
-        var select = new ComponentBuilder()
-            .WithSelectMenu($"game:pick:{gameId}", options, "Pick your card")
-            .Build();
-
-        if (repeated)
+        if (shouldPickAnother)
         {
-            var original = await component.GetOriginalResponseAsync();
-
-            await original.ModifyAsync(m =>
-            {
-                m.Embed = embed;
-                m.Components = select;
-            });
+            await ShowCardsSelectionAsync(component, gameId, true);
             return;
         }
 
-        await component.FollowupAsync(ephemeral: true, embed: embed, components: select);
-    }
-
-    private async Task PickCard(SocketMessageComponent component, int gameId)
-    {
-        var playerId = component.User.Id;
-        var cardId = int.Parse(component.Data.Values.First());
-
-        var pickAnotherCard = await _service.SubmitPickedCardAsync(gameId, playerId, cardId);
-
-        // If there are more card picks needed
-        if (pickAnotherCard)
+        await component.ModifyOriginalResponseAsync(m =>
         {
-            await ShowCardsSelection(component, gameId, true);
-            return;
-        }
-
-        var original = await component.GetOriginalResponseAsync();
-        var embed = new EmbedBuilder()
-            .WithColor(DiscordConstants.ColorGreen)
-            .WithTitle("All cards picked!")
-            .WithDescription("Now wait for the other players to make their choice.")
-            .WithCurrentTimestamp();
-
-        await original.ModifyAsync(m =>
-        {
-            m.Embed = embed.Build();
+            m.Embed = EmbedBuilders.AllWhiteCardsPickedEmbed();
             m.Components = new ComponentBuilder().Build();
         });
     }
 
-    private async Task SelectWinner(SocketMessageComponent component, int gameId)
+    private async Task ShowCardsSelectionAsync(SocketInteraction button, int gameId) =>
+        await ShowCardsSelectionAsync(button, gameId, false);
+
+    private async Task ShowCardsSelectionAsync(SocketInteraction button, int gameId, bool update)
     {
-        var playerId = component.User.Id;
-        var winnerId = int.Parse(component.Data.Values.First());
+        var blackCard = await _service.GetCurrentBlackCardAsync(gameId);
+        var pickedCards = await _service.GetPickedWhiteCardsAsync(gameId, button.User.Id);
+        var whiteCards = await _service.GetAvailableWhiteCardsAsync(gameId, button.User.Id);
 
-        var (winner, submission) = await _service.SubmitWinnerAsync(gameId, playerId, winnerId);
+        var embed = EmbedBuilders.WhiteCardSelectionEmbed(
+            blackCard!.Text,
+            pickedCards.Select(c => c.Text).ToList(),
+            whiteCards.Select(c => c.Text).ToList()
+        );
 
-        var embed = new EmbedBuilder()
-            .WithTitle("The judge picked this submission as the winner")
-            .WithDescription(submission)
-            .WithColor(DiscordConstants.ColorGreen)
-            .WithCurrentTimestamp()
-            .AddField("Submitted by", $"<@!{winner.UserId}>")
+        var options = whiteCards.Select(c =>
+            new SelectMenuOptionBuilder()
+                .WithLabel(c.Text.SafeSubstring(0, 100))
+                .WithValue(c.Id.ToString())
+        );
+
+        var components = new ComponentBuilder()
+            .WithSelectMenu($"game:pick:{gameId}", options.ToList(), "Select a white card")
+            .WithButton(ButtonBuilder.CreatePrimaryButton("Confirm pick", $"game:confirm-pick:{gameId}"))
             .Build();
 
-        await component.Message.DeleteAsync();
-        await component.FollowupAsync(embed: embed);
+        if (update)
+        {
+            await button.ModifyOriginalResponseAsync(m =>
+            {
+                m.Embed = embed;
+                m.Components = components;
+            });
+            return;
+        }
 
-        await _service.CreateGameRoundAsync(gameId);
+        await button.FollowupAsync(ephemeral: true, embed: embed, components: components);
     }
 }

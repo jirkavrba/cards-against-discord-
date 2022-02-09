@@ -4,12 +4,28 @@ namespace CardsAgainstDiscord.Extensions;
 
 public static class StringExtensions
 {
-    public static string FormatBlackCard(this string original)
+    public static string FormatBlackCard(this string original, List<string>? cards = null)
     {
-        return new Regex("_+")
-            .Replace(original, "`________`")
-            .Replace("\\n", "\n")
-            .ReplaceLineEndings();
+        var text = original.Replace("\\n", "\n").ReplaceLineEndings();
+
+        var pattern = new Regex("_+");
+        const string replacement = "`________`";
+        const string replacementAlternative = "`        `";
+
+        // If there are no already selected cards just highlight all blanks and return
+        if (cards == null)
+        {
+            return pattern.Replace(text, replacement);
+        }
+
+        // Fill-in all card texts (formatted in bold)
+        var filled = cards.Aggregate(text, (current, card) => pattern.Replace(current, "**" + card + "**", 1));
+        
+        // Replace the next blank with the highlighted replacement
+        var replaced = pattern.Replace(filled, replacement);
+            
+        // Replace all other blanks with the alternative replacement
+        return pattern.Replace(replaced, replacementAlternative);
     }
 
     public static string SafeSubstring(this string original, int start, int length)

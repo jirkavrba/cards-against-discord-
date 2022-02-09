@@ -47,4 +47,22 @@ public static class EmbedBuilders
             .AddField("Judge", judge.AsUserMention())
             .AddField("Players", string.Join("\n", players))
             .Build();
+
+    public static Embed WhiteCardSelectionEmbed(string blackCard, List<string> pickedCards, IEnumerable<string> availableCards)
+    {
+        var whiteCards = availableCards.Select(card => $" • {card}");
+
+        return new EmbedBuilder()
+            .WithTitle("Select a white card to fill in the blank")
+            .WithDescription(blackCard.FormatBlackCard(pickedCards))
+            .AddField("Available white cards", string.Join("\n", whiteCards))
+            .Build();
+    }
+
+    public static Embed AllWhiteCardsPickedEmbed() =>
+        new EmbedBuilder()
+            .WithColor(DiscordConstants.ColorGreen)
+            .WithTitle("All white cards picked!")
+            .WithDescription("Now wait for other players to finish.\nYou can dismiss all previous emphemeral message.")
+            .Build();
 }

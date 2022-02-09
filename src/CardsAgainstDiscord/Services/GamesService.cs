@@ -48,107 +48,111 @@ public class GamesService : IGamesService
         return game;
     }
 
-    public async Task<BlackCard> GetCurrentBlackCardAsync(int gameId)
+    public async Task<BlackCard?> GetCurrentBlackCardAsync(int gameId)
     {
-        // await using var context = await _factory.CreateDbContextAsync();
-        //
-        // var round = await context.Rounds
-        //     .Include(r => r.BlackCard)
-        //     .FirstOrDefaultAsync(r => r.GameId == gameId) ?? throw new GameNotFoundException();
-        //
-        // return round.BlackCard;
-        return null!;
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+            .Include(r => r.BlackCard)
+            .FirstOrDefaultAsync(r => r.Id == gameId) ?? throw new GameNotFoundException();
+
+        return game.BlackCard;
     }
 
     public async Task<List<WhiteCard>> GetAvailableWhiteCardsAsync(int gameId, ulong userId)
     {
-        // await using var context = await _factory.CreateDbContextAsync();
-        //
-        // var round = await context.Rounds
-        //                 .Include(r => r.BlackCard)
-        //                 .FirstOrDefaultAsync(r => r.GameId == gameId)
-        //             ?? throw new GameNotFoundException();
-        //
-        // var player = await context.Players
-        //                  .Include(p => p.WhiteCards)
-        //                  .Include(p => p.PickedCards)
-        //                  .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId)
-        //              ?? throw new PlayerNotFoundException();
-        //
-        // // Do not allow judge to pick white cards
-        // if (round.JudgeId == player.Id) throw new PlayerIsJudgeException();
-        //
-        // // Do not allow users to pick more than <black card picks> cards
-        // if (player.PickedCards.Count(p => p.RoundId == round.Id) >= round.BlackCard.Picks)
-        //     throw new AlreadyPickedAllWhiteCardsException();
-        //
-        // return player.WhiteCards;
-        return null!;
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+            .Include(g => g.BlackCard)
+            .Include(g => g.Judge)
+            .Include(g => g.Players)
+            .ThenInclude(p => p.WhiteCards)
+            .Include(g => g.Players)
+            .ThenInclude(p => p.PickedCards)
+            .ThenInclude(p => p.WhiteCard)
+            .FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
+
+        // The player does not exist within the selected game
+        var player = game.Players.FirstOrDefault(p => p.UserId == userId)
+                     ?? throw new PlayerNotFoundException();
+
+        // The player is the current judge and therefore cannot pick white cards
+        if (game.Judge?.UserId == userId) throw new PlayerIsJudgeException();
+
+        // The player has already selected all white cards 
+        if (player.PickedCards.Count >= game.BlackCard?.Picks) throw new AlreadyPickedAllWhiteCardsException();
+
+        return player.WhiteCards.ToList();
     }
 
     public async Task<List<WhiteCard>> GetPickedWhiteCardsAsync(int gameId, ulong userId)
     {
-        // await using var context = await _factory.CreateDbContextAsync();
-        //
-        // var player = await context.Players
-        //                  .Include(p => p.PickedCards)
-        //                  .ThenInclude(p => p.WhiteCard)
-        //                  .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId)
-        //              ?? throw new PlayerNotFoundException();
-        //
-        // return player.PickedCards.Select(p => p.WhiteCard).ToList();
-        return null!;
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var player = await context.Players
+                         .Include(p => p.PickedCards)
+                         .ThenInclude(p => p.WhiteCard)
+                         .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId)
+                     ?? throw new PlayerNotFoundException();
+
+        return player.PickedCards.Select(p => p.WhiteCard).ToList();
     }
 
-    public async Task<bool> SubmitPickedCardAsync(int gameId, ulong playerId, int cardId)
+    public async Task SelectWhiteCardAsync(int gameId, ulong userId, int whiteCardId)
     {
-        // await using var context = await _factory.CreateDbContextAsync();
-        //
-        // var round = await context.Rounds
-        //     .Include(r => r.BlackCard)
-        //     .FirstOrDefaultAsync(r => r.GameId == gameId) ?? throw new GameNotFoundException();
-        //
-        // var player = await context.Players
-        //                  .Include(p => p.PickedCards)
-        //                  .Include(p => p.WhiteCards)
-        //                  .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == playerId) ??
-        //              throw new PlayerNotFoundException();
-        //
-        // if (player.PickedCards.Count(p => p.RoundId == round.Id) >= round.BlackCard.Picks)
-        //     throw new AlreadyPickedAllWhiteCardsException();
-        //
-        // var card = player.WhiteCards.First(c => c.Id == cardId);
-        // var pick = new PickedCard
-        // {
-        //     RoundId = round.Id,
-        //     PlayerId = player.Id,
-        //     WhiteCardId = cardId
-        // };
-        //
-        // round.PickedCards.Add(pick);
-        // player.WhiteCards.Remove(card);
-        //
-        // context.Rounds.Update(round);
-        // context.Players.Update(player);
-        //
-        // await context.SaveChangesAsync();
-        // await UpdateGameRoundEmbedAsync(gameId);
-        //
-        //
-        // // If the player needs to pick more cards, early return true
-        // if (round.PickedCards.Count(r => r.PlayerId == player.Id) < round.BlackCard.Picks) return true;
-        //
-        // // Check, whether all players have submitted all picks
-        // // There has to be (player - 1 judge) * black picks cards picked
-        // var players = await context.Players.CountAsync(p => p.GameId == gameId);
-        //
-        // if (round.PickedCards.Count == (players - 1) * round.BlackCard.Picks)
-        // {
-        //     // List all submitted cards in a random order for the judge to pick and delete the original message
-        //     await UpdateGameRoundEmbedAsync(gameId);
-        //     await SendJudgeSelectionEmbedAsync(gameId);
-        // }
-        //
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var player = await context.Players.FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId)
+                     ?? throw new PlayerNotFoundException();
+
+        player.SelectedWhiteCardId = whiteCardId;
+        context.Update(player);
+
+        await context.SaveChangesAsync();
+    }
+
+    public async Task<bool> ConfirmSelectedCardAsync(int gameId, ulong userId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+
+        var game = await context.Games
+                       .Include(g => g.BlackCard)
+                       .Include(g => g.Players).ThenInclude(p => p.WhiteCards)
+                       .Include(g => g.Players).ThenInclude(p => p.PickedCards)
+                       .FirstOrDefaultAsync(g => g.Id == gameId)
+                   ?? throw new GameNotFoundException();
+
+        var player = game.Players.FirstOrDefault(p => p.UserId == userId) ?? throw new PlayerNotFoundException();
+        var whiteCardId = player.SelectedWhiteCardId ?? throw new NoSelectedWhiteCardException();
+        var card = player.WhiteCards.FirstOrDefault(c => c.Id == whiteCardId) ?? throw new WhiteCardNotFoundException();
+        
+        // If the player has chosen all the white cards already
+        if (player.PickedCards.Count >= game.BlackCard?.Picks) throw new AlreadyPickedAllWhiteCardsException();
+        
+        player.WhiteCards.Remove(card);
+        player.PickedCards.Add(new PickedCard
+        {
+            PlayerId = player.Id,
+            WhiteCardId = whiteCardId
+        });
+        
+        context.Players.Update(player);
+        
+        await context.SaveChangesAsync();
+        await UpdateGameRoundEmbedAsync(gameId);
+        
+        // If the player needs to pick more white card(s), early return true
+        if (player.PickedCards.Count < game.BlackCard?.Picks) return true;
+        
+        // Check, whether all players have submitted all picks
+        // There has to be (player - 1 judge) * black picks cards picked
+        var pickedCards = game.Players.Aggregate(0, (sum, p) => sum += p.PickedCards.Count);
+        if (pickedCards == (game.Players.Count - 1) * game.BlackCard?.Picks)
+        {
+            // TODO: End the white cards picking phase and send judge selection menu to the game channel
+        }
+        
         return false;
     }
 
@@ -297,63 +301,5 @@ public class GamesService : IGamesService
             m.Embed = embed;
             m.Components = components;
         });
-    }
-
-    private async Task SendJudgeSelectionEmbedAsync(int gameId)
-    {
-        // await using var context = await _factory.CreateDbContextAsync();
-        //
-        // var game = await context.Games
-        //     .Include(g => g.CurrentRound).ThenInclude(r => r!.Judge)
-        //     .Include(g => g.CurrentRound).ThenInclude(r => r!.BlackCard)
-        //     .Include(g => g.CurrentRound)
-        //     .ThenInclude(r => r!.PickedCards)
-        //     .ThenInclude(p => p.WhiteCard)
-        //     .FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
-        //
-        // var guild = _client.GetGuild(game.GuildId);
-        // var channel = guild.GetTextChannel(game.ChannelId);
-        //
-        // if (await channel.GetMessageAsync(game.CurrentRound!.MessageId) is not IUserMessage message) return;
-        //
-        // var blackCard = game.CurrentRound.BlackCard.Text;
-        //
-        // var random = new Random();
-        // var submissions = game.CurrentRound.PickedCards
-        //     .GroupBy(c => c.PlayerId)
-        //     .OrderBy(_ => random.Next())
-        //     .ToList();
-        //
-        // var texts = submissions.Select((cards, i) =>
-        //     $"**{i}.** " + blackCard
-        //         .FormatBlackCard(cards.Select(c => c.WhiteCard.Text)
-        //             .ToList())
-        // ).ToList();
-        //
-        // var embed = new EmbedBuilder()
-        //     .WithTitle("Waiting for the judge to select his favorite submission")
-        //     .WithDescription("To make the choice, use the button below this message")
-        //     .WithColor(DiscordConstants.ColorPrimary)
-        //     .WithCurrentTimestamp()
-        //     .AddField("Judge", $"<@!{game.CurrentRound!.Judge.UserId}>")
-        //     .AddField("Submissions", string.Join("\n\n", texts))
-        //     .Build();
-        //
-        // var components = new ComponentBuilder()
-        //     .WithSelectMenu(
-        //         $"game:judge:{game.CurrentRound.Id}",
-        //         submissions.Select((t, i) => new SelectMenuOptionBuilder
-        //         {
-        //             Label = $"{i + 1}. " + string.Join(", ", t.Select(c => c.WhiteCard.Text)),
-        //             Value = t.Key.ToString()
-        //         }).ToList()
-        //     )
-        //     .Build();
-        //
-        // await message.DeleteAsync();
-        // await channel.SendMessageAsync(
-        //     embed: embed,
-        //     components: components
-        // );
     }
 }

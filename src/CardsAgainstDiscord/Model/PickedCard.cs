@@ -10,12 +10,6 @@ public class PickedCard
     public int Id { get; set; }
 
     /// <summary>
-    ///     ID of the game round that this pick was made in
-    /// </summary>
-    [Required]
-    public int RoundId { get; set; }
-
-    /// <summary>
     ///     ID of the player that picked this card
     /// </summary>
     [Required]
@@ -26,11 +20,6 @@ public class PickedCard
     /// </summary>
     [Required]
     public int WhiteCardId { get; set; }
-
-    /// <summary>
-    ///     Mapped game that this card was picked in
-    /// </summary>
-    public Game Game { get; set; } = null!;
 
     /// <summary>
     ///     Mapped player that made this pick
