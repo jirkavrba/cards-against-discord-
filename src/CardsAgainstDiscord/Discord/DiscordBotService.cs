@@ -13,6 +13,8 @@ public class DiscordBotService : BackgroundService
 
     private readonly IEnumerable<IComponentHandler> _componentHandlers;
 
+    private readonly IEnumerable<IModalHandler> _modalHandlers;
+
     private readonly DiscordConfiguration _configuration;
 
     private readonly ISlashCommandDispatcher _dispatcher;
@@ -24,13 +26,14 @@ public class DiscordBotService : BackgroundService
         IOptions<DiscordConfiguration> configuration,
         ILogger<DiscordBotService> logger,
         ISlashCommandDispatcher dispatcher,
-        IEnumerable<IComponentHandler> componentHandlers
-    )
+        IEnumerable<IComponentHandler> componentHandlers, 
+        IEnumerable<IModalHandler> modalHandlers)
     {
         _client = client;
         _logger = logger;
         _dispatcher = dispatcher;
         _componentHandlers = componentHandlers;
+        _modalHandlers = modalHandlers;
         _configuration = configuration.Value;
     }
 
@@ -40,6 +43,7 @@ public class DiscordBotService : BackgroundService
         _client.Log += HandleLogMessage;
         _client.ButtonExecuted += HandleInteraction;
         _client.SelectMenuExecuted += HandleInteraction;
+        _client.ModalSubmitted += HandleModal;
 
         await _client.LoginAsync(TokenType.Bot, _configuration.Token);
         await _client.StartAsync();
@@ -49,6 +53,11 @@ public class DiscordBotService : BackgroundService
     private async Task HandleInteraction(SocketMessageComponent component)
     {
         foreach (var handler in _componentHandlers) await handler.HandleInteractionAsync(component);
+    }
+
+    private async Task HandleModal(SocketModal modal)
+    {
+        foreach (var handler in _modalHandlers) await handler.HandleModalSubmissionAsync(modal);
     }
 
     private async Task HandleReadyAsync()
