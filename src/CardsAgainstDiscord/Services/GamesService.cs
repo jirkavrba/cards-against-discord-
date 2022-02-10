@@ -471,12 +471,9 @@ public class GamesService : IGamesService
         var submission = winner.PickedCards.Select(c => c.WhiteCard.Text).ToList();
         
         var text = game.BlackCard?.Text.FormatBlackCard(submission);
-        var scoreBoard = game.Players
-            .OrderByDescending(p => p.Score)
-            .Select(p => $"{p.UserId.AsUserMention()} - **{p.Score} points**")
-            .ToList();
+        var scoreboard = game.Players.ToDictionary(p => p.UserId, p => p.Score);
         
-        var embed = EmbedBuilders.WinnerEmbed(text!, winner.UserId, scoreBoard);
+        var embed = EmbedBuilders.WinnerEmbed(text!, winner.UserId, scoreboard);
         var components = new ComponentBuilder()
             .WithButton(ButtonBuilder.CreateSecondaryButton("Join next round", $"join-game:{game.Id}"))
             .WithButton(ButtonBuilder.CreateSecondaryButton("Leave next round", $"leave-game:{game.Id}"))
