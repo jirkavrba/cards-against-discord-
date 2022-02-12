@@ -62,13 +62,6 @@ public static class EmbedBuilders
             .Build();
     }
 
-    public static Embed AllWhiteCardsPickedEmbed() =>
-        new EmbedBuilder()
-            .WithColor(DiscordConstants.ColorGreen)
-            .WithTitle("All white cards picked!")
-            .WithDescription("Now wait for other players to finish.\nYou can dismiss all previous ephemeral message.")
-            .Build();
-
     public static Embed JudgeSelectionEmbed(ulong judge, IEnumerable<string> submissions) =>
         new EmbedBuilder()
             .WithColor(DiscordConstants.ColorYellow)
