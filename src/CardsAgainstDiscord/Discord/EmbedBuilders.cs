@@ -16,7 +16,7 @@ public static class EmbedBuilders
             .Build();
     }
 
-    public static Embed LobbyEmbed(ulong ownerId, IEnumerable<ulong> joinedPlayers)
+    public static Embed LobbyEmbed(ulong ownerId, IEnumerable<ulong> joinedPlayers, int winPoints)
     {
         var ids = joinedPlayers.Select(p => p.AsUserMention()).ToList();
         var players = ids.Any() ? string.Join(", ", ids) : "_No player have joined this game yet_";
@@ -25,10 +25,10 @@ public static class EmbedBuilders
             .WithColor(DiscordConstants.ColorPrimary)
             .WithThumbnailUrl(DiscordConstants.Banner)
             .WithTitle("Let's play cards against humanity!")
-            .WithDescription(
-                "To join or leave this game, click the button below the message.\nYou can leave the game by clicking the button again.")
+            .WithDescription("To join or leave this game, click the button below the message.\nYou can leave the game by clicking the button again.")
             .AddField("Game owner", ownerId.AsUserMention())
             .AddField("Joined players", players)
+            .WithFooter($"First player to reach {winPoints} points wins")
             .WithCurrentTimestamp()
             .Build();
     }

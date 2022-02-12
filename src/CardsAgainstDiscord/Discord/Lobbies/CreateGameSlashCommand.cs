@@ -49,7 +49,8 @@ public class CreateGameSlashCommand : ISlashCommand
         var message = await textChannel.SendMessageAsync("Creating a new game...");
         var winPoints = command.Data.Options
             .Where(p => p.Name == "win-points")
-            .Select(p => (int) p.Value)
+            .Select(p => (long) p.Value)
+            .Select(p => (int) p)
             .FirstOrDefault(10);
 
         try

@@ -133,7 +133,7 @@ public class LobbiesService : ILobbiesService
             return;
         }
 
-        var embed = EmbedBuilders.LobbyEmbed(lobby.OwnerId, lobby.JoinedPlayers);
+        var embed = EmbedBuilders.LobbyEmbed(lobby.OwnerId, lobby.JoinedPlayers, lobby.WinPoints);
         var components = new ComponentBuilder()
             .WithButton(ButtonBuilder.CreatePrimaryButton("👋 Join / leave", $"lobby:join:{lobby.Id}"))
             .WithButton(ButtonBuilder.CreateSecondaryButton("😎 Start", $"lobby:start:{lobby.Id}"))
