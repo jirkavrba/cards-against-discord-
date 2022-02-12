@@ -4,7 +4,7 @@ namespace CardsAgainstDiscord.Services.Contracts;
 
 public interface ILobbiesService
 {
-    public Task<Lobby> CreateLobbyAsync(ulong guildId, ulong channelId, ulong messageId, ulong ownerId);
+    public Task<Lobby> CreateLobbyAsync(ulong guildId, ulong channelId, ulong messageId, ulong ownerId, int winPoints);
 
     public Task ToggleJoinLobbyAsync(int lobbyId, ulong userId);
 

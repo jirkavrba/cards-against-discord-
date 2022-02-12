@@ -16,8 +16,7 @@ public class LobbiesService : ILobbiesService
 
     private readonly IGamesService _gamesService;
 
-    public LobbiesService(IDbContextFactory<CardsDbContext> factory, DiscordSocketClient client,
-        IGamesService gamesService)
+    public LobbiesService(IDbContextFactory<CardsDbContext> factory, DiscordSocketClient client, IGamesService gamesService)
     {
         _factory = factory;
         _client = client;
@@ -33,16 +32,22 @@ public class LobbiesService : ILobbiesService
         .WithCurrentTimestamp()
         .Build();
 
-    public async Task<Lobby> CreateLobbyAsync(ulong guildId, ulong channelId, ulong messageId, ulong ownerId)
+    public async Task<Lobby> CreateLobbyAsync(ulong guildId, ulong channelId, ulong messageId, ulong ownerId, int winPoints)
     {
         await using var context = await _factory.CreateDbContextAsync();
 
+        if (winPoints is < 1 or > 50)
+        {
+            throw new ArgumentOutOfRangeException(nameof(winPoints), "The number of win points must be between 1 and 50");
+        }
+        
         var lobby = new Lobby
         {
             GuildId = guildId,
             ChannelId = channelId,
             MessageId = messageId,
             OwnerId = ownerId,
+            WinPoints = winPoints,
             JoinedPlayers = new List<ulong> {ownerId}
         };
 

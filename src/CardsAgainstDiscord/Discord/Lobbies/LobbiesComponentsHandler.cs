@@ -44,7 +44,7 @@ public class LobbiesComponentsHandler : IComponentHandler
         {
             await component.FollowupAsync(
                 ephemeral: true,
-                embed: EmbedBuilders.Error(exception.Title, exception.Description).Build()
+                embed: EmbedBuilders.Error(exception.Title, exception.Description)
             );
         }
     }

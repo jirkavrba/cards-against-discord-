@@ -42,7 +42,7 @@ public class JoiningLeavingComponentHandler : IComponentHandler
         catch (EmbeddableException exception)
         {
             await component.FollowupAsync(
-                embed: EmbedBuilders.Error(exception.Title, exception.Description).Build(),
+                embed: EmbedBuilders.Error(exception.Title, exception.Description),
                 ephemeral: true
             );
         }

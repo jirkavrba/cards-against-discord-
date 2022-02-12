@@ -17,7 +17,17 @@ public class CreateGameSlashCommand : ISlashCommand
     public ApplicationCommandProperties Properties => new SlashCommandBuilder
         {
             Name = "game",
-            Description = "Starts a new game of cards against humanity"
+            Description = "Starts a new game of cards against humanity",
+            Options = new List<SlashCommandOptionBuilder>
+            {
+                new()
+                {
+                    Name = "win-points",
+                    Description = "Number of points required to win (defaults to 10)",
+                    IsRequired = false,
+                    Type = ApplicationCommandOptionType.Integer
+                }
+            }
         }
         .Build();
 
@@ -25,25 +35,34 @@ public class CreateGameSlashCommand : ISlashCommand
     {
         if (command.Channel is not SocketGuildChannel channel)
         {
-            await command.RespondAsync(embed: EmbedBuilders.Error("Sorry, this command can only be used inside a guild.").Build());
+            await command.RespondAsync(embed: EmbedBuilders.Error("Sorry, this command can only be used inside a guild."));
             return;
         }
 
         if (channel is not SocketTextChannel textChannel)
         {
-            await command.RespondAsync(embed: EmbedBuilders.Error("Okay, how?", "Using commands in voice channels should be straight up illegal.").Build());
+            await command.RespondAsync(embed: EmbedBuilders
+                .Error("Okay, how?", "Using commands in voice channels should be straight up illegal."));
             return;
         }
 
-        await command.RespondAsync("A game is being created in this channel 👌", ephemeral: true);
-        
         var message = await textChannel.SendMessageAsync("Creating a new game...");
+        var winPoints = command.Data.Options
+            .Where(p => p.Name == "win-points")
+            .Select(p => (int) p.Value)
+            .FirstOrDefault(10);
 
-        await _service.CreateLobbyAsync(
-            channel.Guild.Id,
-            textChannel.Id,
-            message.Id,
-            command.User.Id
-        );
+        try
+        {
+            await command.RespondAsync("A game is being created in this channel 👌", ephemeral: true);
+            await _service.CreateLobbyAsync(channel.Guild.Id, textChannel.Id, message.Id, command.User.Id, winPoints);
+        }
+        catch (Exception exception)
+        {
+            await command.RespondAsync(
+                embed: EmbedBuilders.Error("Sorry there was an issue", exception.Message),
+                ephemeral: true
+            );
+        }
     }
 }

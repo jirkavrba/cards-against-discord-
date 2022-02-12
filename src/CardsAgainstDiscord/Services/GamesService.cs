@@ -37,6 +37,7 @@ public class GamesService : IGamesService
         {
             GuildId = lobby.GuildId,
             ChannelId = lobby.ChannelId,
+            WinPoints = lobby.WinPoints,
             Players = lobby.JoinedPlayers.Select(id => new Player {UserId = id}).ToList()
         };
 
