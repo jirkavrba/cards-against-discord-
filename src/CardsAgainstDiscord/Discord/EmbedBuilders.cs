@@ -109,7 +109,7 @@ public static class EmbedBuilders
             });
 
         return new EmbedBuilder()
-            .WithColor(DiscordConstants.ColorGreen)
+            .WithColor(DiscordConstants.ColorYellow)
             .WithTitle($"The game is over!")
             .WithDescription($"{winnerUserId.AsUserMention()} won the game.")
             .WithThumbnailUrl(DiscordConstants.TrophyAnimation)
