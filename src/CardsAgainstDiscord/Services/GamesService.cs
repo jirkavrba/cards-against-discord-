@@ -37,6 +37,7 @@ public class GamesService : IGamesService
         {
             GuildId = lobby.GuildId,
             ChannelId = lobby.ChannelId,
+            WinPoints = lobby.WinPoints,
             Players = lobby.JoinedPlayers.Select(id => new Player {UserId = id}).ToList()
         };
 
@@ -198,11 +199,18 @@ public class GamesService : IGamesService
         context.Games.Update(game);
         
         await context.SaveChangesAsync();
-        await SendRoundWinnerEmbedAsync(gameId, winner.Id);
+        
         await DeleteGameRoundEmbedAsync(gameId);
+        await SendRoundWinnerEmbedAsync(gameId, winner.Id);
+
+        if (winner.Score == game.WinPoints)
+        {
+            await SendGameWinnerEmbedAsync(gameId, winner.UserId);
+            await DeleteGameAsync(gameId);
+            return;
+        }
         
         await Task.Delay(TimeSpan.FromSeconds(5));
-        
         await CreateGameRoundAsync(gameId);
     }
 
@@ -473,7 +481,7 @@ public class GamesService : IGamesService
         var text = game.BlackCard?.Text.FormatBlackCard(submission);
         var scoreboard = game.Players.ToDictionary(p => p.UserId, p => p.Score);
         
-        var embed = EmbedBuilders.WinnerEmbed(text!, winner.UserId, scoreboard);
+        var embed = EmbedBuilders.RoundWinnerEmbed(text!, winner.UserId, scoreboard);
         var components = new ComponentBuilder()
             .WithButton(ButtonBuilder.CreateSecondaryButton("Join next round", $"join-game:{game.Id}"))
             .WithButton(ButtonBuilder.CreateSecondaryButton("Leave next round", $"leave-game:{game.Id}"))
@@ -483,6 +491,25 @@ public class GamesService : IGamesService
         var channel = guild.GetTextChannel(game.ChannelId);
 
         await channel.SendMessageAsync(embed: embed, components: components);
+    }
+
+    private async Task SendGameWinnerEmbedAsync(int gameId, ulong winnerUserId)
+    {
+        await using var context = await _factory.CreateDbContextAsync();
+        
+        var game = await context.Games
+                       .Include(g => g.Players)
+                       .FirstOrDefaultAsync(g => g.Id == gameId)
+                   ?? throw new GameNotFoundException();
+        
+        var scoreboard = game.Players.ToDictionary(p => p.UserId, p => p.Score);
+        
+        var embed = EmbedBuilders.GameWinnerEmbed(winnerUserId, scoreboard);
+
+        var guild = _client.GetGuild(game.GuildId);
+        var channel = guild.GetTextChannel(game.ChannelId);
+        
+        await channel.SendMessageAsync(embed: embed);
     }
 
     private async Task SendDeletedGameEmbedAsync(int gameId)

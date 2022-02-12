@@ -13,13 +13,19 @@ public class Game
     ///     ID of the guild that this game is being played in
     /// </summary>
     [Required]
-    public ulong GuildId { get; set; }
+    public ulong GuildId { get; init; }
 
     /// <summary>
     ///     ID of the channel that this game is being played in
     /// </summary>
     [Required]
-    public ulong ChannelId { get; set; }
+    public ulong ChannelId { get; init; }
+    
+    /// <summary>
+    ///     Points required to win the game
+    /// </summary>
+    [Required]
+    public int WinPoints { get; init; } = 10;
 
     /// <summary>
     ///     ID of the message with the current round

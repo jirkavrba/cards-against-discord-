@@ -10,4 +10,6 @@ public static class DiscordConstants
 
     public const string Banner = "https://i.imgur.com/Ttu1OPc.png";
     public const string BannerInactive = "https://i.imgur.com/JbVGbzw.png";
+
+    public const string TrophyAnimation = "https://i.imgur.com/DVQwjHZ.gif";
 }

@@ -14,7 +14,7 @@ public static class ServiceCollectionExtensions
     {
         var configuration = new DiscordSocketConfig
         {
-            GatewayIntents = GatewayIntents.AllUnprivileged,
+            GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers,
             LogGatewayIntentWarnings = true
         };
 

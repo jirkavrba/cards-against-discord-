@@ -6,16 +6,17 @@ namespace CardsAgainstDiscord.Discord;
 
 public static class EmbedBuilders
 {
-    public static EmbedBuilder Error(string title, string? description = null)
+    public static Embed Error(string title, string? description = null)
     {
         return new EmbedBuilder()
             .WithColor(DiscordConstants.ColorRed)
             .WithTitle(title)
             .WithDescription(description)
-            .WithCurrentTimestamp();
+            .WithCurrentTimestamp()
+            .Build();
     }
 
-    public static Embed LobbyEmbed(ulong ownerId, IEnumerable<ulong> joinedPlayers)
+    public static Embed LobbyEmbed(ulong ownerId, IEnumerable<ulong> joinedPlayers, int winPoints)
     {
         var ids = joinedPlayers.Select(p => p.AsUserMention()).ToList();
         var players = ids.Any() ? string.Join(", ", ids) : "_No player have joined this game yet_";
@@ -24,10 +25,10 @@ public static class EmbedBuilders
             .WithColor(DiscordConstants.ColorPrimary)
             .WithThumbnailUrl(DiscordConstants.Banner)
             .WithTitle("Let's play cards against humanity!")
-            .WithDescription(
-                "To join or leave this game, click the button below the message.\nYou can leave the game by clicking the button again.")
+            .WithDescription("To join or leave this game, click the button below the message.\nYou can leave the game by clicking the button again.")
             .AddField("Game owner", ownerId.AsUserMention())
             .AddField("Joined players", players)
+            .WithFooter($"First player to reach {winPoints} points wins")
             .WithCurrentTimestamp()
             .Build();
     }
@@ -61,13 +62,6 @@ public static class EmbedBuilders
             .Build();
     }
 
-    public static Embed AllWhiteCardsPickedEmbed() =>
-        new EmbedBuilder()
-            .WithColor(DiscordConstants.ColorGreen)
-            .WithTitle("All white cards picked!")
-            .WithDescription("Now wait for other players to finish.\nYou can dismiss all previous ephemeral message.")
-            .Build();
-
     public static Embed JudgeSelectionEmbed(ulong judge, IEnumerable<string> submissions) =>
         new EmbedBuilder()
             .WithColor(DiscordConstants.ColorYellow)
@@ -76,7 +70,7 @@ public static class EmbedBuilders
             .AddField(" Judge", "⚖️ " + judge.AsUserMention())
             .Build();
 
-    public static Embed WinnerEmbed(string text, ulong winnerId, Dictionary<ulong, int> scoreboard)
+    public static Embed RoundWinnerEmbed(string text, ulong winnerId, Dictionary<ulong, int> scoreboard)
     {
         var emojis = new[] {"🥇", "🥈", "🥉"};
         var sorted = scoreboard
@@ -97,6 +91,30 @@ public static class EmbedBuilders
             .WithCurrentTimestamp()
             .AddField("Submitted by", "🏆 " + winnerId.AsUserMention())
             .AddField("Scores", string.Join("\n", sorted))
+            .Build();
+    }
+    
+    public static Embed GameWinnerEmbed(ulong winnerUserId, Dictionary<ulong, int> scoreboard)
+    {
+        var emojis = new[] {"🥇", "🥈", "🥉"};
+        var sorted = scoreboard
+            .OrderByDescending(pair => pair.Value)
+            .Select((pair, i) =>
+            {
+                var emoji = i < emojis.Length ? emojis[i] : "🗿";
+                var score = pair.Value.ToString().PadLeft(3);
+                var user = pair.Key.AsUserMention();
+
+                return $"{emoji} **{score}** - {user}";
+            });
+
+        return new EmbedBuilder()
+            .WithColor(DiscordConstants.ColorYellow)
+            .WithTitle($"The game is over!")
+            .WithDescription($"{winnerUserId.AsUserMention()} won the game.")
+            .WithThumbnailUrl(DiscordConstants.TrophyAnimation)
+            .AddField("Scores", string.Join("\n", sorted))
+            .WithCurrentTimestamp()
             .Build();
     }
 

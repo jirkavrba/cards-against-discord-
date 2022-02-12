@@ -13,29 +13,35 @@ public class Lobby
     ///     ID of the guild that the lobby was created in
     /// </summary>
     [Required]
-    public ulong GuildId { get; set; }
+    public ulong GuildId { get; init; }
 
     /// <summary>
     ///     ID of the channel that the lobby was created in
     /// </summary>
     [Required]
-    public ulong ChannelId { get; set; }
+    public ulong ChannelId { get; init; }
 
     /// <summary>
     ///     ID of the message with the lobby embed
     /// </summary>
     [Required]
-    public ulong MessageId { get; set; }
+    public ulong MessageId { get; init; }
 
     /// <summary>
     ///     Discord ID of the owner that created this lobby
     /// </summary>
     [Required]
-    public ulong OwnerId { get; set; }
+    public ulong OwnerId { get; init; }
 
+    /// <summary>
+    ///     Number of points required in order to win the game
+    /// </summary>
+    [Required]
+    public int WinPoints { get; init; }
+    
     /// <summary>
     ///     IDs of the players joined to this lobby
     /// </summary>
     [Required]
-    public List<ulong> JoinedPlayers { get; set; } = new();
+    public List<ulong> JoinedPlayers { get; init; } = new();
 }
