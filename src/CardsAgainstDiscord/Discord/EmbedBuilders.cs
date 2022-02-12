@@ -77,7 +77,7 @@ public static class EmbedBuilders
             .AddField(" Judge", "⚖️ " + judge.AsUserMention())
             .Build();
 
-    public static Embed WinnerEmbed(string text, ulong winnerId, Dictionary<ulong, int> scoreboard)
+    public static Embed RoundWinnerEmbed(string text, ulong winnerId, Dictionary<ulong, int> scoreboard)
     {
         var emojis = new[] {"🥇", "🥈", "🥉"};
         var sorted = scoreboard
@@ -98,6 +98,30 @@ public static class EmbedBuilders
             .WithCurrentTimestamp()
             .AddField("Submitted by", "🏆 " + winnerId.AsUserMention())
             .AddField("Scores", string.Join("\n", sorted))
+            .Build();
+    }
+    
+    public static Embed GameWinnerEmbed(ulong winnerUserId, Dictionary<ulong, int> scoreboard)
+    {
+        var emojis = new[] {"🥇", "🥈", "🥉"};
+        var sorted = scoreboard
+            .OrderByDescending(pair => pair.Value)
+            .Select((pair, i) =>
+            {
+                var emoji = i < emojis.Length ? emojis[i] : "🗿";
+                var score = pair.Value.ToString().PadLeft(3);
+                var user = pair.Key.AsUserMention();
+
+                return $"{emoji} **{score}** - {user}";
+            });
+
+        return new EmbedBuilder()
+            .WithColor(DiscordConstants.ColorGreen)
+            .WithTitle($"The game is over!")
+            .WithDescription($"{winnerUserId.AsUserMention()} won the game.")
+            .WithThumbnailUrl(DiscordConstants.TrophyAnimation)
+            .AddField("Scores", string.Join("\n", sorted))
+            .WithCurrentTimestamp()
             .Build();
     }
 
