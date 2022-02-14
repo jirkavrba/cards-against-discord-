@@ -1,4 +1,3 @@
-using System.Xml.Serialization;
 using CardsAgainstDiscord.Data;
 using CardsAgainstDiscord.Discord;
 using CardsAgainstDiscord.Exceptions;
@@ -377,6 +376,7 @@ public class GamesService : IGamesService
             .OrderBy(p => p)
             .ToList();
 
+        var pings = string.Join(", ", game.Players.Select(p => p.UserId.AsUserMention()));
         var embed = EmbedBuilders.GameRoundEmbed(text, judge, players);
         var components = new ComponentBuilder().WithButton(
             ButtonBuilder.CreatePrimaryButton(
@@ -387,7 +387,7 @@ public class GamesService : IGamesService
 
         await message.ModifyAsync(m =>
         {
-            m.Content = "";
+            m.Content = pings;
             m.Embed = embed;
             m.Components = components;
         });
@@ -443,6 +443,7 @@ public class GamesService : IGamesService
             .OrderBy(_ => random.Next())
             .ToList();
 
+        var ping = game.Judge!.UserId.AsUserMention();
         var embed = EmbedBuilders.JudgeSelectionEmbed(game.Judge!.UserId, submissions.Select((s, i) => s.text));
 
         var options = submissions.Select((s, i) => new SelectMenuOptionBuilder(
@@ -455,7 +456,7 @@ public class GamesService : IGamesService
             .WithButton("Confirm choice", $"game:confirm-judge:{gameId}")
             .Build();
 
-        var message = await channel.SendMessageAsync(embed: embed, components: components);
+        var message = await channel.SendMessageAsync(ping, embed: embed, components: components);
 
         game.MessageId = message.Id;
 
