@@ -20,18 +20,16 @@ public class GamesService : IGamesService
 
     private readonly DiscordSocketClient _client;
 
-    private readonly IDbContextFactory<CardsDbContext> _factory;
+    private readonly CardsDbContext _context;
 
-    public GamesService(DiscordSocketClient client, IDbContextFactory<CardsDbContext> factory)
+    public GamesService(DiscordSocketClient client, CardsDbContext context)
     {
         _client = client;
-        _factory = factory;
+        _context = context;
     }
 
     public async Task<Game> CreateGameAsync(Lobby lobby)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
         var game = new Game
         {
             GuildId = lobby.GuildId,
@@ -40,10 +38,10 @@ public class GamesService : IGamesService
             Players = lobby.JoinedPlayers.Select(id => new Player {UserId = id}).ToList()
         };
 
-        context.Games.Add(game);
-        context.Lobbies.Remove(lobby);
+        _context.Games.Add(game);
+        _context.Lobbies.Remove(lobby);
 
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
         await CreateGameRoundAsync(game.Id);
 
         return game;
@@ -51,9 +49,7 @@ public class GamesService : IGamesService
 
     public async Task<BlackCard?> GetCurrentBlackCardAsync(int gameId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var game = await context.Games
+        var game = await _context.Games
             .Include(r => r.BlackCard)
             .FirstOrDefaultAsync(r => r.Id == gameId) ?? throw new GameNotFoundException();
 
@@ -62,9 +58,7 @@ public class GamesService : IGamesService
 
     public async Task<List<WhiteCard>> GetAvailableWhiteCardsAsync(int gameId, ulong userId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var game = await context.Games
+        var game = await _context.Games
             .Include(g => g.BlackCard)
             .Include(g => g.Judge)
             .Include(g => g.Players)
@@ -89,9 +83,7 @@ public class GamesService : IGamesService
 
     public async Task<List<WhiteCard>> GetPickedWhiteCardsAsync(int gameId, ulong userId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var player = await context.Players
+        var player = await _context.Players
                          .Include(p => p.PickedCards)
                          .ThenInclude(p => p.WhiteCard)
                          .FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId)
@@ -102,22 +94,18 @@ public class GamesService : IGamesService
 
     public async Task SelectWhiteCardAsync(int gameId, ulong userId, int whiteCardId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var player = await context.Players.FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId)
+        var player = await _context.Players.FirstOrDefaultAsync(p => p.GameId == gameId && p.UserId == userId)
                      ?? throw new PlayerNotFoundException();
 
         player.SelectedWhiteCardId = whiteCardId;
-        context.Update(player);
+        _context.Update(player);
 
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
 
     public async Task<bool> ConfirmSelectedCardAsync(int gameId, ulong userId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var game = await context.Games
+        var game = await _context.Games
                        .Include(g => g.BlackCard)
                        .Include(g => g.Players).ThenInclude(p => p.WhiteCards)
                        .Include(g => g.Players).ThenInclude(p => p.PickedCards)
@@ -138,9 +126,9 @@ public class GamesService : IGamesService
             WhiteCardId = whiteCardId
         });
 
-        context.Players.Update(player);
+        _context.Players.Update(player);
 
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
         await UpdateGameRoundEmbedAsync(gameId);
 
         // If the player needs to pick more white card(s), early return true
@@ -160,9 +148,7 @@ public class GamesService : IGamesService
 
     public async Task SelectWinnerAsync(int gameId, ulong userId, int playerId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var game = await context.Games
+        var game = await _context.Games
                        .Include(g => g.Judge)
                        .Include(g => g.Players)
                        .FirstOrDefaultAsync(g => g.Id == gameId)
@@ -172,15 +158,13 @@ public class GamesService : IGamesService
 
         game.SelectedWinnerId = playerId;
 
-        context.Games.Update(game);
-        await context.SaveChangesAsync();
+        _context.Games.Update(game);
+        await _context.SaveChangesAsync();
     }
 
     public async Task ConfirmSelectedWinnerAsync(int gameId, ulong userId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var game = await context.Games
+        var game = await _context.Games
                        .Include(g => g.Judge)
                        .Include(g => g.Players)
                        .FirstOrDefaultAsync(g => g.Id == gameId)
@@ -195,9 +179,9 @@ public class GamesService : IGamesService
         winner.Score++;
         game.SelectedWinnerId = null;
         
-        context.Games.Update(game);
+        _context.Games.Update(game);
         
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
         
         await DeleteGameRoundEmbedAsync(gameId);
         await SendRoundWinnerEmbedAsync(gameId, winner.Id);
@@ -215,9 +199,7 @@ public class GamesService : IGamesService
 
     public async Task JoinGameAsync(int gameId, ulong userId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId)
+        var game = await _context.Games.FirstOrDefaultAsync(g => g.Id == gameId)
             ?? throw new GameNotFoundException();
 
         if (!game.JoiningPlayers.Contains(userId))
@@ -226,16 +208,14 @@ public class GamesService : IGamesService
             game.LeavingPlayers.Remove(userId);
         }
 
-        context.Games.Update(game);
+        _context.Games.Update(game);
 
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
 
     public async Task LeaveGameAsync(int gameId, ulong userId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId)
+        var game = await _context.Games.FirstOrDefaultAsync(g => g.Id == gameId)
             ?? throw new GameNotFoundException();
 
         if (!game.LeavingPlayers.Contains(userId))
@@ -244,17 +224,15 @@ public class GamesService : IGamesService
             game.LeavingPlayers.Add(userId);
         }
 
-        context.Games.Update(game);
+        _context.Games.Update(game);
 
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
 
     private async Task CreateGameRoundAsync(int gameId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
         // Move the judge role to the next player
-        var game = await context.Games.Where(g => g.Id == gameId)
+        var game = await _context.Games.Where(g => g.Id == gameId)
             .Include(g => g.UsedBlackCards)
             .Include(g => g.UsedWhiteCards)
             .Include(g => g.Players).ThenInclude(p => p.PickedCards)
@@ -301,14 +279,13 @@ public class GamesService : IGamesService
         // Similarly, if there are submitted white cards from the previous round, add the to the used white cards collection
         foreach (var player in game.Players)
         {
-            // TODO: adding to used white cards breaks the transaction for some reason
-            // game.UsedWhiteCards.AddRange(player.PickedCards.Select(p => p.WhiteCard));
+            game.UsedWhiteCards.AddRange(player.PickedCards.Select(p => p.WhiteCard));
             player.PickedCards.Clear();
         }
 
         // Select a card randomly from all black cards that have not been used yet in this game
         var random = new Random();
-        var selectedBlackCard = context.BlackCards.Where(c => !game.UsedBlackCards.Contains(c))
+        var selectedBlackCard = _context.BlackCards.Where(c => !game.UsedBlackCards.Contains(c))
             .ToList() // Needed in order to change the context to local evaluation
             .OrderBy(_ => random.Next())
             .First();
@@ -322,7 +299,7 @@ public class GamesService : IGamesService
         game.MessageId = message.Id;
 
         // Add missing white cards to each player from pool of white cards that have not been used yet
-        var availableWhiteCards = context.WhiteCards.Where(c => !game.UsedWhiteCards.Contains(c))
+        var availableWhiteCards = _context.WhiteCards.Where(c => !game.UsedWhiteCards.Contains(c))
             .ToList() // Needed in order to change the context to local evaluation
             .OrderBy(_ => random.Next())
             .ToList();
@@ -339,17 +316,15 @@ public class GamesService : IGamesService
             takenCards += missingCards;
         }
 
-        context.Games.Update(game);
+        _context.Games.Update(game);
 
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
         await UpdateGameRoundEmbedAsync(game);
     }
 
     private async Task UpdateGameRoundEmbedAsync(int gameId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var game = await context.Games
+        var game = await _context.Games
             .Include(g => g.Judge)
             .Include(g => g.BlackCard)
             .Include(g => g.Players).ThenInclude(p => p.PickedCards)
@@ -395,9 +370,7 @@ public class GamesService : IGamesService
 
     private async Task DeleteGameRoundEmbedAsync(int gameId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId)
+        var game = await _context.Games.FirstOrDefaultAsync(g => g.Id == gameId)
                    ?? throw new GameNotFoundException();
 
         if (game.MessageId == null) return;
@@ -408,16 +381,14 @@ public class GamesService : IGamesService
         await channel.DeleteMessageAsync(game.MessageId.Value);
 
         game.MessageId = null;
-        context.Games.Update(game);
+        _context.Games.Update(game);
 
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
 
     private async Task SendJudgeSelectionEmbedAsync(int gameId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var game = await context.Games
+        var game = await _context.Games
                        .Include(g => g.BlackCard)
                        .Include(g => g.Judge)
                        .Include(g => g.Players)
@@ -460,14 +431,12 @@ public class GamesService : IGamesService
 
         game.MessageId = message.Id;
 
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
 
     private async Task SendRoundWinnerEmbedAsync(int gameId, int winnerId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var game = await context.Games
+        var game = await _context.Games
                        .Include(g => g.BlackCard)
                        .Include(g => g.Judge)
                        .Include(g => g.Players)
@@ -496,9 +465,7 @@ public class GamesService : IGamesService
 
     private async Task SendGameWinnerEmbedAsync(int gameId, ulong winnerUserId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-        
-        var game = await context.Games
+        var game = await _context.Games
                        .Include(g => g.Players)
                        .FirstOrDefaultAsync(g => g.Id == gameId)
                    ?? throw new GameNotFoundException();
@@ -515,9 +482,7 @@ public class GamesService : IGamesService
 
     private async Task SendDeletedGameEmbedAsync(int gameId)
     {
-       await using var context = await _factory.CreateDbContextAsync();
-
-       var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
+       var game = await _context.Games.FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
        var guild = _client.GetGuild(game.GuildId);
        var channel = guild.GetTextChannel(game.ChannelId);
        
@@ -526,11 +491,9 @@ public class GamesService : IGamesService
 
     private async Task DeleteGameAsync(int gameId)
     {
-       await using var context = await _factory.CreateDbContextAsync();
+       var game = await _context.Games.FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
 
-       var game = await context.Games.FirstOrDefaultAsync(g => g.Id == gameId) ?? throw new GameNotFoundException();
-
-       context.Games.Remove(game);
-       await context.SaveChangesAsync();
+       _context.Games.Remove(game);
+       await _context.SaveChangesAsync();
     }
 }

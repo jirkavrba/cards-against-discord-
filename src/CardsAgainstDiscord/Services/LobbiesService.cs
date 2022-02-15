@@ -5,21 +5,21 @@ using CardsAgainstDiscord.Model;
 using CardsAgainstDiscord.Services.Contracts;
 using Discord;
 using Discord.WebSocket;
-using Microsoft.EntityFrameworkCore;
 
 namespace CardsAgainstDiscord.Services;
 
 public class LobbiesService : ILobbiesService
 {
     private readonly DiscordSocketClient _client;
-    private readonly IDbContextFactory<CardsDbContext> _factory;
+    
+    private readonly CardsDbContext _context;
 
     private readonly IGamesService _gamesService;
 
-    public LobbiesService(IDbContextFactory<CardsDbContext> factory, DiscordSocketClient client, IGamesService gamesService)
+    public LobbiesService(CardsDbContext context, DiscordSocketClient client, IGamesService gamesService)
     {
-        _factory = factory;
         _client = client;
+        _context = context;
         _gamesService = gamesService;
     }
 
@@ -34,8 +34,6 @@ public class LobbiesService : ILobbiesService
 
     public async Task<Lobby> CreateLobbyAsync(ulong guildId, ulong channelId, ulong messageId, ulong ownerId, int winPoints)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
         if (winPoints is < 1 or > 50)
         {
             throw new ArgumentOutOfRangeException(nameof(winPoints), "The number of win points must be between 1 and 50");
@@ -51,8 +49,8 @@ public class LobbiesService : ILobbiesService
             JoinedPlayers = new List<ulong> {ownerId}
         };
 
-        await context.Lobbies.AddAsync(lobby);
-        await context.SaveChangesAsync();
+        await _context.Lobbies.AddAsync(lobby);
+        await _context.SaveChangesAsync();
 
         await UpdateLobbyEmbedAsync(lobby);
 
@@ -61,9 +59,7 @@ public class LobbiesService : ILobbiesService
 
     public async Task ToggleJoinLobbyAsync(int lobbyId, ulong userId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var lobby = await context.Lobbies.FindAsync(lobbyId)
+        var lobby = await _context.Lobbies.FindAsync(lobbyId)
                     ?? throw new LobbyNotFoundException();
 
         if (lobby.JoinedPlayers.Contains(userId))
@@ -71,32 +67,28 @@ public class LobbiesService : ILobbiesService
         else
             lobby.JoinedPlayers.Add(userId);
 
-        context.Lobbies.Update(lobby);
+        _context.Lobbies.Update(lobby);
 
         await UpdateLobbyEmbedAsync(lobby);
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
 
     public async Task CancelLobbyAsync(int lobbyId, ulong userId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var lobby = await context.Lobbies.FindAsync(lobbyId)
+        var lobby = await _context.Lobbies.FindAsync(lobbyId)
                     ?? throw new LobbyNotFoundException();
 
         if (lobby.OwnerId != userId) throw new UserIsNotTheOwnerException();
 
-        context.Lobbies.Remove(lobby);
+        _context.Lobbies.Remove(lobby);
 
         await UpdateLobbyEmbedAsync(lobby, true);
-        await context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
 
     public async Task StartGameAsync(int lobbyId, ulong userId)
     {
-        await using var context = await _factory.CreateDbContextAsync();
-
-        var lobby = await context.Lobbies.FindAsync(lobbyId)
+        var lobby = await _context.Lobbies.FindAsync(lobbyId)
                     ?? throw new LobbyNotFoundException();
 
         if (lobby.OwnerId != userId) throw new UserIsNotTheOwnerException();
