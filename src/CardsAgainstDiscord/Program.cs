@@ -35,7 +35,6 @@ var host = Host.CreateDefaultBuilder(args)
 
         services.AddDiscordBot();
         services.AddSlashCommands();
-        services.AddInteractionHandlers();
 
         services.AddHostedService<CardsImportingService>();
     })

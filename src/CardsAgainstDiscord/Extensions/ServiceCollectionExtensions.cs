@@ -36,13 +36,4 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
-
-    public static IServiceCollection AddInteractionHandlers(this IServiceCollection services)
-    {
-        services.AddTransient<IComponentHandler, LobbiesComponentsHandler>();
-        services.AddTransient<IComponentHandler, CardPicksComponentHandler>();
-        services.AddTransient<IComponentHandler, JoiningLeavingComponentHandler>();
-
-        return services;
-    }
 }
