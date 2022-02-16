@@ -34,8 +34,6 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddTransient<IGamesService, GamesService>();
 
         services.AddDiscordBot();
-        services.AddSlashCommands();
-
         services.AddHostedService<CardsImportingService>();
     })
     .Build();
