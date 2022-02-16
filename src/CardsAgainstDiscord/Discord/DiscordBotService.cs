@@ -1,7 +1,7 @@
+using System.Reflection;
 using CardsAgainstDiscord.Configuration;
-using CardsAgainstDiscord.Discord.Commands;
-using CardsAgainstDiscord.Discord.Interactions;
 using Discord;
+using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.Options;
 
@@ -11,29 +11,30 @@ public class DiscordBotService : BackgroundService
 {
     private readonly DiscordSocketClient _client;
 
-    private readonly IEnumerable<IComponentHandler> _componentHandlers;
-
-    private readonly IEnumerable<IModalHandler> _modalHandlers;
-
+    private readonly InteractionService _interactions;
+    
     private readonly DiscordConfiguration _configuration;
-
-    private readonly ISlashCommandDispatcher _dispatcher;
 
     private readonly ILogger<DiscordBotService> _logger;
 
+    private readonly IServiceProvider _services;
+
+    private readonly IHostEnvironment _environment;
+
     public DiscordBotService(
         DiscordSocketClient client,
+        InteractionService interactions,
         IOptions<DiscordConfiguration> configuration,
         ILogger<DiscordBotService> logger,
-        ISlashCommandDispatcher dispatcher,
-        IEnumerable<IComponentHandler> componentHandlers, 
-        IEnumerable<IModalHandler> modalHandlers)
+        IServiceProvider services, 
+        IHostEnvironment environment 
+    )
     {
         _client = client;
+        _interactions = interactions;
         _logger = logger;
-        _dispatcher = dispatcher;
-        _componentHandlers = componentHandlers;
-        _modalHandlers = modalHandlers;
+        _services = services;
+        _environment = environment;
         _configuration = configuration.Value;
     }
 
@@ -41,31 +42,26 @@ public class DiscordBotService : BackgroundService
     {
         _client.Ready += HandleReadyAsync;
         _client.Log += HandleLogMessage;
-        _client.ButtonExecuted += HandleInteraction;
-        _client.SelectMenuExecuted += HandleInteraction;
-        _client.ModalSubmitted += HandleModal;
-
+        
         await _client.LoginAsync(TokenType.Bot, _configuration.Token);
         await _client.StartAsync();
         await Task.Delay(-1, stoppingToken);
     }
 
-    private async Task HandleInteraction(SocketMessageComponent component)
-    {
-        foreach (var handler in _componentHandlers) await handler.HandleInteractionAsync(component);
-    }
-
-    private async Task HandleModal(SocketModal modal)
-    {
-        foreach (var handler in _modalHandlers) await handler.HandleModalSubmissionAsync(modal);
-    }
-
     private async Task HandleReadyAsync()
     {
-        await _dispatcher.RegisterCommandsAsync(_client);
-
         await _client.SetStatusAsync(UserStatus.Offline);
         await _client.SetGameAsync("cards against humanity");
+
+        await _interactions.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+
+        if (_environment.IsDevelopment())
+        {
+            await _interactions.RegisterCommandsToGuildAsync(_configuration.GuildId ?? 0);
+            return;
+        }
+
+        await _interactions.RegisterCommandsGloballyAsync();
     }
 
     private Task HandleLogMessage(LogMessage message)

@@ -46,24 +46,5 @@ public class CreateGameSlashCommand : ISlashCommand
             return;
         }
 
-        var message = await textChannel.SendMessageAsync("Creating a new game...");
-        var winPoints = command.Data.Options
-            .Where(p => p.Name == "win-points")
-            .Select(p => (long) p.Value)
-            .Select(p => (int) p)
-            .FirstOrDefault(10);
-
-        try
-        {
-            await command.RespondAsync("A game is being created in this channel 👌", ephemeral: true);
-            await _service.CreateLobbyAsync(channel.Guild.Id, textChannel.Id, message.Id, command.User.Id, winPoints);
-        }
-        catch (Exception exception)
-        {
-            await command.RespondAsync(
-                embed: EmbedBuilders.Error("Sorry there was an issue", exception.Message),
-                ephemeral: true
-            );
-        }
     }
 }

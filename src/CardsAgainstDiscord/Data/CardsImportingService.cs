@@ -21,6 +21,8 @@ public class CardsImportingService : BackgroundService
     {
         await using var context = await _factory.CreateDbContextAsync(stoppingToken);
 
+        await context.Database.MigrateAsync(stoppingToken);
+        
         // Only import new cards if there are no cards in the database
         if (await context.WhiteCards.AnyAsync(stoppingToken) ||
             await context.BlackCards.AnyAsync(stoppingToken)) return;

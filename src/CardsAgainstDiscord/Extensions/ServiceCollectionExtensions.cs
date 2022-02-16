@@ -4,6 +4,7 @@ using CardsAgainstDiscord.Discord.Games;
 using CardsAgainstDiscord.Discord.Interactions;
 using CardsAgainstDiscord.Discord.Lobbies;
 using Discord;
+using Discord.Interactions;
 using Discord.WebSocket;
 
 namespace CardsAgainstDiscord.Extensions;
@@ -18,7 +19,10 @@ public static class ServiceCollectionExtensions
             LogGatewayIntentWarnings = true
         };
 
-        services.AddSingleton(new DiscordSocketClient(configuration));
+        var client = new DiscordSocketClient(configuration);
+
+        services.AddSingleton(client);
+        services.AddSingleton(new InteractionService(client));
         services.AddHostedService<DiscordBotService>();
 
         return services;
