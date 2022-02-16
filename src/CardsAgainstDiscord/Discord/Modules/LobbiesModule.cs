@@ -12,8 +12,7 @@ public class LobbiesModule : InteractionModuleBase<SocketInteractionContext>
         _service = service;
     }
 
-    [RequireContext(ContextType.Guild)]
-    [SlashCommand("game", "Create a new cards against humanity game")]
+    [SlashCommand("game", "Creates a new cards against humanity game")]
     public async Task CreateLobbyCommandAsync(
         [Summary("win-points", "Number of points required for win (defaults to 10)")] 
         int points = 10
@@ -33,5 +32,23 @@ public class LobbiesModule : InteractionModuleBase<SocketInteractionContext>
                 ephemeral: true
             );
         }
+    }
+
+    [ComponentInteraction("lobby:join:*")]
+    public async Task JoinLobbyAsync(string id)
+    {
+        await _service.ToggleJoinLobbyAsync(int.Parse(id), Context.User.Id);
+    }
+
+    [ComponentInteraction("lobby:start:*")]
+    public async Task StartGameAsync(string id)
+    {
+        await _service.StartGameAsync(int.Parse(id), Context.User.Id);
+    }
+    
+    [ComponentInteraction("lobby:cancel:*")]
+    public async Task CancelGameAsync(string id)
+    {
+        await _service.CancelLobbyAsync(int.Parse(id), Context.User.Id);
     }
 }

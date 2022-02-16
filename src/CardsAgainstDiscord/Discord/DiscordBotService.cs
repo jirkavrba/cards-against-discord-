@@ -1,5 +1,6 @@
 using System.Reflection;
 using CardsAgainstDiscord.Configuration;
+using CardsAgainstDiscord.Exceptions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -41,7 +42,8 @@ public class DiscordBotService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _client.Ready += HandleReadyAsync;
-        _client.Log += HandleLogMessage;
+        _client.Log += HandleLogMessageAsync;
+        _client.InteractionCreated += HandleInteractionAsync;
         
         await _client.LoginAsync(TokenType.Bot, _configuration.Token);
         await _client.StartAsync();
@@ -64,12 +66,35 @@ public class DiscordBotService : BackgroundService
         await _interactions.RegisterCommandsGloballyAsync();
     }
 
-    private Task HandleLogMessage(LogMessage message)
+    private Task HandleLogMessageAsync(LogMessage message)
     {
         if (message.Exception != null) _logger.LogCritical("Exception: {exception}", message.Exception);
 
         _logger.LogInformation("{message}", message.Message);
 
         return Task.CompletedTask;
+    }
+
+    private async Task HandleInteractionAsync(SocketInteraction interaction)
+    {
+        var context = new SocketInteractionContext(_client, interaction);
+
+        try
+        {
+            await interaction.DeferAsync();
+            await _interactions.ExecuteCommandAsync(context, _services);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogInformation("Error handling socket interaction: {message}", exception.Message);
+
+            if (exception is EmbeddableException embeddable)
+            {
+                await interaction.FollowupAsync(
+                    ephemeral: true,
+                    embed: EmbedBuilders.Error(embeddable.Title, embeddable.Description)
+                );
+            }
+        }
     }
 }
