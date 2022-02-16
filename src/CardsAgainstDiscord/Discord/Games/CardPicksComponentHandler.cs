@@ -1,4 +1,3 @@
-using CardsAgainstDiscord.Discord.Interactions;
 using CardsAgainstDiscord.Exceptions;
 using CardsAgainstDiscord.Extensions;
 using CardsAgainstDiscord.Services.Contracts;
@@ -7,7 +6,7 @@ using Discord.WebSocket;
 
 namespace CardsAgainstDiscord.Discord.Games;
 
-public class CardPicksComponentHandler : IComponentHandler
+public class CardPicksComponentHandler 
 {
     private readonly IGamesService _service;
 

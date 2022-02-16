@@ -1,12 +1,10 @@
-using System.ComponentModel;
-using CardsAgainstDiscord.Discord.Interactions;
 using CardsAgainstDiscord.Exceptions;
 using CardsAgainstDiscord.Services.Contracts;
 using Discord.WebSocket;
 
 namespace CardsAgainstDiscord.Discord.Games;
 
-public class JoiningLeavingComponentHandler : IComponentHandler
+public class JoiningLeavingComponentHandler 
 {
     private readonly IGamesService _service;
 

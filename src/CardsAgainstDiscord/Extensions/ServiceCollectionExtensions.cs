@@ -1,8 +1,4 @@
 using CardsAgainstDiscord.Discord;
-using CardsAgainstDiscord.Discord.Commands;
-using CardsAgainstDiscord.Discord.Games;
-using CardsAgainstDiscord.Discord.Interactions;
-using CardsAgainstDiscord.Discord.Lobbies;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -24,15 +20,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(client);
         services.AddSingleton(new InteractionService(client));
         services.AddHostedService<DiscordBotService>();
-
-        return services;
-    }
-
-    public static IServiceCollection AddSlashCommands(this IServiceCollection services)
-    {
-        services.AddTransient<ISlashCommandDispatcher, SlashCommandDispatcher>();
-
-        services.AddTransient<ISlashCommand, CreateGameSlashCommand>();
 
         return services;
     }
